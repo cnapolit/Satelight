@@ -1,0 +1,36 @@
+#filters {
+    position: fixed;
+    bottom: 45%;
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    overflow-y: scroll;
+    justify-content: center;
+    transition: bottom .25s ease-out;
+}
+#filters.hide {
+    bottom: -10%;
+}
+.filters::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+}
+
+#filters > .filter-item {
+    margin-right: 1rem;
+}
+#filters > .filter-item:last-child {
+    margin-right: 0;
+}
+
+.filter-text {
+    font-size: 1.5rem;
+}
+
+.filter-item:focus {
+    border-color: #f1eadc;
+}
+
+.filter-item.selected-item {
+    background: white;
+    color: black;
+}

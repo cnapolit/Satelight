@@ -1,0 +1,34 @@
+#game-logo {
+    position: absolute;
+    left: 5vw;
+    top: 10vh;
+    max-width: 28vw;
+    font-size: 3rem;
+    font-family: verdana;
+    color: white;
+    filter: drop-shadow(2px 4px 8px black);
+    transition: opacity 0.5s ease-in-out;
+}
+
+#game-logo.hide {
+    opacity: 0;
+}
+
+#game-logo.center {
+    transform: translate(42vw, 25vh);
+
+}
+
+.logo {
+    position: absolute;
+    transition: opacity 0.5s ease-in-out;
+    transition-delay: 0.5s;
+}
+.logo.hide {
+    transition-delay: 0s;
+    opacity: 0;
+}
+
+.logo.text {
+    width: 28vw;   
+}

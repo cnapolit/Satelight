@@ -1,0 +1,39 @@
+<div id="TopBar">
+    <div id="menu-button" tabindex="0">
+        <img src="/res/bars.png"/>
+    </div>
+    <div id="gridButton" tabindex="0"></div>
+    <div id="clock">
+        <div id="clock-text">@currentDateTime</div>
+    </div>
+    <div id="searchBar"></div>
+</div>
+
+@code
+{
+    private string currentDateTime = "";
+    private System.Timers.Timer timer = new System.Timers.Timer();
+
+    private async Task UpdateClock()
+    {
+        currentDateTime = DateTime.Now.ToString("HH:mm");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    { 
+        timer.Interval = 60000; 
+        timer.Elapsed += OnTimerTick;
+        timer.Start();
+        await UpdateClock();
+    }
+
+    private void OnTimerTick(object _, System.Timers.ElapsedEventArgs __)
+        => InvokeAsync(UpdateClock);
+
+    public void Dispose()
+    {
+        timer.Stop();
+        timer.Dispose();
+    }
+}

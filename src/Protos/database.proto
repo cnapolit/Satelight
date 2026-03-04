@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package database;
+
+service Database {
+    rpc GetCache     (GetCacheRequest)   returns (GetCacheReply);
+    rpc GetTags      (GetLabelsRequest)  returns (GetLabelsReply);
+    rpc GetGenres    (GetLabelsRequest)  returns (GetLabelsReply);
+    rpc GetSources   (GetLabelsRequest)  returns (GetLabelsReply);
+    rpc GetPlatforms (GetLabelsRequest)  returns (GetLabelsReply);
+    rpc GetFilters   (FiltersGetRequest) returns (FiltersGetReply);
+    rpc SetFilter    (SetFilterRequest)  returns (SuccessReply);
+}
+
+message GetCacheRequest {}
+message GetCacheReply {
+    repeated Filter Filters = 1;
+    repeated Label Tags = 2;
+    repeated Label Genres = 3;
+    repeated Label Sources = 4;
+    repeated Label Platforms = 5;
+    repeated Label CompletionStatuses = 6;
+    repeated Label Library = 7;
+}
+
+message FiltersGetRequest {}
+message FiltersGetReply {
+    repeated Filter Filters = 1;
+}
+
+message SetFilterRequest {
+    bytes Id = 1;
+}
+
+message GetLabelsRequest {}
+message GetLabelsReply {
+    repeated Label Labels = 1;
+}
+
+message Label {
+    bytes Id = 1;
+    string Name = 2;
+}
+
+message Filter {
+    bytes Id = 1;
+    string Name = 2;
+    bool Visible = 3;
+}
+
+service Device {
+    rpc Sleep(SleepRequest) returns (SuccessReply);
+    rpc PowerOff(PowerOffRequest) returns (SuccessReply);
+}
+message SleepRequest {}
+message PowerOffRequest {}
+message SuccessReply {
+    bool Success = 1;
+}

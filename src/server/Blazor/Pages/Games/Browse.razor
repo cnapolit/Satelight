@@ -1,0 +1,28 @@
+@using Server.Blazor.Components
+@using Server.Models.UserInterface
+@rendermode InteractiveServer
+@inject BrowseState BrowseState
+@page "/"
+
+<script src="js/Index.js" type="module"></script>
+
+<Background/>
+<TopBar/>
+<Logo Game="@BrowseState.SelectedGame"/>
+<Filters/>
+<Server.Blazor.Components.Games/>
+<GameDetails/> 
+<GameStartDialogue/>
+<GameOptions/>
+
+@code {
+    protected override void OnInitialized()
+    {
+        BrowseState.SelectedGameChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        BrowseState.SelectedGameChanged -= StateHasChanged;
+    }
+}

@@ -1,0 +1,29 @@
+#TopBar {
+    position: fixed;
+    height: 6%;
+    width: 100%;
+    display: flex;
+    flex-direction: row-reverse;
+    padding: 1rem 1rem 0 0;
+    filter: drop-shadow(2px 4px 6px black);
+}
+
+#menu-button {
+    filter: invert();
+    height: 100%;
+}
+#menu-button > img {
+    height: 100%;
+}
+
+#clock {
+    padding: 0px 15px 0px 0px;
+    display: flex;
+    align-items: center;
+}
+#clock-text {
+    color: white;
+    font-size: 2.2rem;
+    font-family: verdana;
+    text-align: center;
+}

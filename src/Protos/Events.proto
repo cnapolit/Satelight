@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package events;
+
+option csharp_namespace = "Satelight.Protos.Events";
+
+service Events {
+    rpc Subscribe (SubscribeBody) returns (stream EventMessage);
+}
+
+message SubscribeBody {
+}
+message EventMessage {
+    string EventType = 1;
+    string Payload   = 2;
+}

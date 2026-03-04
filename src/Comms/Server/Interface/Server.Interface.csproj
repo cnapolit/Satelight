@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C0E93AA4-998D-48E4-86CC-96F6C7B9DBD4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Comms.Server.Interface</RootNamespace>
+    <AssemblyName>Comms.Server.Interface</AssemblyName>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <LangVersion>12.0</LangVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.8, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Microsoft.Bcl.AsyncInterfaces.9.0.8\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="IServerConnection.cs" />
+    <Compile Include="IServerListener.cs" />
+    <Compile Include="Models\GameInstanceRequest.cs" />
+    <Compile Include="Models\GetLibrariesRequest.cs" />
+    <Compile Include="Models\GetLibrariesResponse.cs" />
+    <Compile Include="Models\InstallGameRequest.cs" />
+    <Compile Include="Models\MoveGameRequest.cs" />
+    <Compile Include="Models\RepairGameRequest.cs" />
+    <Compile Include="Models\SetFilterRequest.cs" />
+    <Compile Include="Models\StartGameRequest.cs" />
+    <Compile Include="Models\StopGameRequest.cs" />
+    <Compile Include="Models\StreamGamesRequest.cs" />
+    <Compile Include="Models\UninstallGameRequest.cs" />
+    <Compile Include="Models\UpdateGameRequest.cs" />
+    <Compile Include="Models\UpdateLibraryRequest.cs" />
+    <Compile Include="Models\UpdateLibraryResponse.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Common\DotNetCoreFeatures\DotNetCoreFeatures.csproj">
+      <Project>{cf46ad26-501f-46ea-a82d-566abcdbb9e3}</Project>
+      <Name>DotNetCoreFeatures</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Common\NewInterface\Interface.csproj">
+      <Project>{93210fa9-ffae-47cc-99ba-68164b44753d}</Project>
+      <Name>Interface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Host\Factory\Host.Factory.csproj">
+      <Project>{974b14ae-2212-4581-a149-abbd06c1a0c6}</Project>
+      <Name>Host.Factory</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Host\Interface\Host.Interface.csproj">
+      <Project>{92a48830-3a92-41b5-b182-95588a5f0d6d}</Project>
+      <Name>Host.Interface</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

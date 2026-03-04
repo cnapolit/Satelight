@@ -1,0 +1,9 @@
+export const focusedMenuClass = "focused-menu";
+export const selectedClass = "selected-item";
+export const gamesListClass = "games";
+export const gameDetailsClass = "game-details";
+export const topBarClass = "topBar";
+export const filtersClass = "filters";
+export const GameOptionsClass = "game-options";
+export const previousClass = "previous-item";
+export const hideClass = "hide";

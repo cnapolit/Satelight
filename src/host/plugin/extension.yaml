@@ -1,0 +1,8 @@
+﻿Id: Satelight.Host.Plugin
+Name: Satelight Host Plugin
+Author: cnapolit
+Version: 1.0
+Module: HostPlugin.dll
+Type: GenericPlugin
+Icon: icon.png
+AddonId: Satelight.Host

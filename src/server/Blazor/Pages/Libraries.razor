@@ -1,0 +1,130 @@
+@using Microsoft.EntityFrameworkCore
+@using Server.Blazor.Layout
+@using Server.Database
+@using Server.Models.Database
+@rendermode InteractiveServer
+@inject IDbContextFactory<DatabaseContext> DatabaseContextFactory
+@layout MainLayout
+@page "/Libraries"
+
+<PageTitle>Libraries</PageTitle>
+<h3>Libraries</h3>
+
+<button class="btn btn-primary" @onclick="ClearLibrariesAsync">Clear Libraries</button>
+<button class="btn btn-primary" @onclick="ShowMergeLibrariesModal">Merge Libraries</button>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th></th>
+        <th>Name</th>
+        <th>Hosts</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var library in _libraries)
+    {
+        <tr>
+            <td>
+                <input type="checkbox"
+                       checked="@_selectedLibraries.Contains(library)"
+                       @onchange="e => OnLibrarySelectionChanged(e.Value, library)" />
+            </td>
+            <td>@library.Name</td>
+            <td>@string.Join(", ", library.Hosts.Select(h => h.DisplayName))</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    private void OnLibrarySelectionChanged(object? value, Library library)
+    {
+        if (value is true)
+        {
+            if (!_selectedLibraries.Contains(library))
+                _selectedLibraries.Add(library);
+        }
+        else
+        {
+            _selectedLibraries.Remove(library);
+        }
+    }
+}
+
+
+@if (_showMergeLibrariesModal) {
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Merge Libaries</h5>
+                </div>
+                <div class="modal-body">
+                    <label for="targetLibrarySelect">Select Target Library:</label>
+                    <select id="targetLibrarySelect" class="form-select" @bind="_targetLibrary" @onselect="MergeLibrariesAsync">
+                        @foreach (var library in _selectedLibraries)
+                        {
+                            <option value="@library">@library.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+@code {
+    private List<Library> _libraries = [];
+    protected override async Task OnInitializedAsync()
+    { 
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        _libraries = await databaseContext.Libraries.Include(l => l.Hosts).ToListAsync(); 
+    }
+
+    private async Task ClearLibrariesAsync()
+    {
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        databaseContext.Libraries.RemoveRange(databaseContext.Libraries);
+        databaseContext.Libraries.Add(new Library { Name = "Local", Id = Guid.Empty });
+        await databaseContext.SaveChangesAsync();
+        _libraries = await databaseContext.Libraries.ToListAsync();
+    }
+
+    private bool _showMergeLibrariesModal = false;
+    private void ShowMergeLibrariesModal() => _showMergeLibrariesModal = true;
+
+    private Library? _targetLibrary = null;
+    private readonly List<Library> _selectedLibraries = [];
+    private async Task MergeLibrariesAsync()
+    {
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        var libraries = databaseContext
+                       .Libraries
+                       .Include(l => l.Hosts)
+                       .Include(l => l.LibraryGames)
+                       .Include(l => l.Accounts)
+                       .Where  (l => _selectedLibraries.Any(sl => sl.Id == l.Id))
+                       .AsAsyncEnumerable();
+
+        await foreach (var library in libraries)
+        {
+            Update(_targetLibrary!.Hosts,       library.Hosts);
+            Update(_targetLibrary.LibraryGames, library.LibraryGames);
+            Update(_targetLibrary.Accounts,     library.Accounts);
+            databaseContext.LibraryAliases.Add(new LibraryAlias { Name = library.Name, TargetId = _targetLibrary.Id });
+            databaseContext.Libraries.Remove(library);
+        }
+        await databaseContext.SaveChangesAsync();
+
+        _libraries = await databaseContext.Libraries.Include(l => l.Hosts).ToListAsync();
+    }
+
+    private void Update<T>(ICollection<T> source, ICollection<T> target) where T : DatabaseObject
+    {
+        foreach (var item in source)
+        if      (!target.Any(i => i.Id == item.Id))
+                target.Add(item);
+    }
+}

@@ -1,0 +1,23 @@
+﻿@using Server.Blazor.Components
+@inherits LayoutComponentBase
+
+<div class="page">
+    <GuideMenu />
+
+    <video id="HdmiSource" class="hdmi" loop autoplay muted>
+        <source type="service/webos-external" src="ext://hdmi:4"/>
+        @* <source type="video/mp4" src="https://clan.fastly.steamstatic.com/images/39049601/9e43ee4ba768ed4055fd47579b77aedf0864d1e4.mp4"/> *@
+    </video>
+
+    <main>
+        <article>
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

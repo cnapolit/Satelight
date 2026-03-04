@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package core;
+
+option csharp_namespace = "Satelight.Protos.Core";
+
+service Database {
+    rpc GetCache       (GetCacheBody) returns       (GetCacheReply);
+    rpc Update   (UpdateDatabaseBody) returns (UpdateDatabaseReply);
+}
+message UpdateDatabaseBody {
+    repeated bytes Hosts = 1;
+}
+message UpdateDatabaseReply {
+    Op Op = 1;
+}
+
+message GetCacheBody {}
+message GetCacheReply {
+    repeated Label Tags               = 1;
+    repeated Label Genres             = 2;
+    repeated Label Sources            = 3;
+    repeated Label Platforms          = 4;
+    repeated Label CompletionStatuses = 5;
+    repeated Label Libraries          = 6;
+}
+
+service Tags {
+    rpc List (ListTagsBody) returns (ListTagsReply);
+}
+message ListTagsBody {}
+message ListTagsReply {
+    repeated Label Labels = 1;
+}
+
+service Genres {
+    rpc List (ListGenresBody) returns (ListGenresReply);
+}
+message ListGenresBody {}
+message ListGenresReply {
+    repeated Label Labels = 1;
+}
+
+service Platforms {
+    rpc List (ListPlatformsBody) returns (ListPlatformsReply);
+}
+message ListPlatformsBody {}
+message ListPlatformsReply {
+    repeated Label Labels = 1;
+}
+
+service Features {
+    rpc List (ListFeaturesBody) returns (ListFeaturesReply);
+}
+message ListFeaturesBody {}
+message ListFeaturesReply {
+    repeated Label Labels = 1;
+}
+
+service Series {
+    rpc List (ListSeriesBody) returns (ListSeriesReply);
+}
+message ListSeriesBody {}
+message ListSeriesReply {
+    repeated Label Labels = 1;
+}
+
+service Companies {
+    rpc List (ListCompaniesBody) returns (ListCompaniesReply);
+}
+message ListCompaniesBody {}
+message ListCompaniesReply {
+    repeated Label Labels = 1;
+}
+
+service Libraries {
+    rpc List (ListLibrariesBody) returns (ListLibrariesReply);
+}
+message ListLibrariesBody {}
+message ListLibrariesReply {
+    repeated Label Labels = 1;
+}
+
+message Label {
+    bytes Id = 1;
+    string Name = 2;
+}
+
+message Result {
+    bool Success = 1;
+}
+
+service Ops {
+    rpc ListOps (ListOpsBody) returns (ListOpsReply);
+    rpc GetOp     (GetOpBody) returns   (GetOpReply);
+}
+
+message ListOpsBody {
+}
+message ListOpsReply {
+    repeated Op Ops = 1;
+}
+
+message GetOpBody { 
+    bytes Id = 1;
+}
+message GetOpReply { 
+    OpInfo Info = 1;
+}
+enum OpState {
+    Unknown  = 0;
+    Queued   = 1;
+    Paused   = 2;
+    Running  = 3;
+    Finished = 4;
+    Failed   = 5;
+}
+enum OpType {
+    None          =  0;
+    StartGame     =  1;
+    MonitorGame   =  2;
+    StopGame      =  3;
+    InstallGame   =  4;
+    UninstallGame =  5;
+    UpdateGame    =  6;
+    RemoveGame    =  7;
+    RepairGame    =  8;
+    MoveGame      =  9;
+    SleepHost     = 10;
+    PowerOffHost  = 11;
+    PowerOnHost   = 12;
+    UpdateHost    = 13;
+    UpdateLibrary = 14;
+}
+message OpInfo {
+    OpState State  = 1;
+    int32 Progress = 2;
+    string Host    = 3;
+    OpType Type    = 4;
+    bytes TargetId = 5;
+}
+message Op {
+    bytes Id      = 1;
+    OpInfo Info   = 2;
+}

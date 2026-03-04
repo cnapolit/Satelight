@@ -1,0 +1,19 @@
+@using Server.Models.Database
+
+<div class="filters" id="filters">
+    @foreach (var filter in _filters)
+    {
+        <div class="filter-item page-button" tabindex="0">
+            <div class="filter-text page-button-text">@filter.Name</div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Filter> _filters = 
+    [
+        new() { Name = "All" },
+        new() { Name = "Installed" },
+        new() { Name = "Not Installed" }
+    ];
+}

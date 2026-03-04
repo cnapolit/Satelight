@@ -1,0 +1,244 @@
+syntax = "proto3";
+
+import "core.proto";
+
+package server;
+
+option csharp_namespace = "Satelight.Protos.Server";
+
+service Filters {
+    rpc List   (ListFiltersBody)  returns  (ListFiltersReply);
+    rpc Insert (InsertFilterBody) returns (InsertFilterReply);
+}
+message InsertFilterBody {
+}
+message InsertFilterReply {
+}
+
+message ListFiltersBody {}
+message ListFiltersReply {
+    repeated Filter Filters = 1;
+}
+message Filter {
+    bytes Id = 1;
+    string Name = 2;
+    bool Visible = 3;
+}
+
+message SetFilterBody {
+    bytes Id = 1;
+}
+message SetFilterReply {
+    Filter Filter = 1;
+}
+
+service Hosts {
+    rpc List        (ListHostsBody) returns    (ListHostsReply);
+    rpc Get           (GetHostBody) returns      (GetHostReply);
+    rpc Sleep       (SleepHostBody) returns    (SleepHostReply);
+    rpc PowerOff (PowerOffHostBody) returns (PowerOffHostReply);
+    rpc PowerOn   (PowerOnHostBody) returns  (PowerOnHostReply);
+    rpc Restart   (RestartHostBody) returns  (RestartHostReply);
+    rpc Update     (UpdateHostBody) returns   (UpdateHostReply);
+}
+
+message GetHostBody {
+    bytes Id = 1;
+}
+message GetHostReply {
+    Host Host = 1;
+}
+
+message ListHostsBody {}
+message ListHostsReply {
+    repeated Host Hosts = 1;
+}
+
+message Host {
+    bytes Id = 1;
+}
+
+message SleepHostBody {
+    bytes Id = 1;
+}
+message SleepHostReply {
+    core.Op Op = 1;
+}
+message PowerOffHostBody {
+    bytes Id = 1;
+}
+message PowerOffHostReply {
+    core.Op Op = 1;
+}
+message RestartHostBody {
+    bytes Id = 1;
+}
+message RestartHostReply {
+    core.Op Op = 1;
+}
+
+message PowerOnHostBody {
+    bytes Id = 1;
+}
+message PowerOnHostReply {
+    core.Op Op = 1;
+}
+
+message UpdateHostBody {
+    bytes Id = 1;
+}
+message UpdateHostReply {
+    core.Op Op = 1;
+}
+
+service Games {
+    rpc Get             (GetGameBody) returns       (GetGameReply);
+    rpc Stream      (StreamGamesBody) returns        (stream Game);
+    rpc Update       (UpdateGameBody) returns    (UpdateGameReply);
+    rpc Install     (InstallGameBody) returns   (InstallGameReply);
+    rpc Uninstall (UninstallGameBody) returns (UninstallGameReply);
+    rpc Remove       (RemoveGameBody) returns    (RemoveGameReply);
+    rpc Repair       (RepairGameBody) returns    (RepairGameReply);
+    rpc Start         (StartGameBody) returns     (StartGameReply);
+    rpc Stop           (StopGameBody) returns      (StopGameReply);
+}
+
+message GetGameBody {
+    bytes GameId = 1;
+}
+message GetGameReply {
+    Game Game = 1;
+}
+
+message StreamGamesBody {
+    optional bytes filter = 1;
+    optional bytes Source = 2;
+    optional bytes Library = 3;
+}
+
+message UpdateGameBody {
+    UserGameAction UserGameAction = 1;
+}
+message UpdateGameReply {
+    core.Op Op = 1;
+}
+
+message InstallGameBody {
+    UserGameAction UserGameAction = 1;
+    string Location = 2;
+}
+message InstallGameReply {
+    core.Op Op = 1;
+}
+
+message UninstallGameBody {
+    UserGameAction UserGameAction = 1;
+}
+message UninstallGameReply {
+    core.Op Op = 1;
+}
+
+message RemoveGameBody {
+    bytes GameId = 1;
+}
+message RemoveGameReply {
+    core.Result Result = 1;
+}
+
+message RepairGameBody {
+    UserGameAction UserGameAction = 1;
+}
+message RepairGameReply {
+    core.Op Op = 1;
+}
+
+message StartGameBody {
+    UserGameAction UserGameAction = 1;
+}
+message StartGameReply {
+    core.Op Op = 1;
+}
+
+message StopGameBody {
+    UserGameAction UserGameAction = 1;
+}
+message StopGameReply {
+    core.Op Op = 1;
+}
+
+message UserGameAction {
+    UserAccount UserAccount = 1;
+    GameIdentifier GameIdentifier = 2;
+}
+
+message UserAccount {
+    bytes UserId = 1;
+    bytes AccountId = 2;
+}
+
+message GameIdentifier {
+    bytes HostId = 1;
+    bytes LibraryId = 2;
+    bytes LibraryGameId = 3;
+    bytes HostGameId = 4;
+}
+
+message Game {
+    bytes Id = 1;
+    optional int64 ReleaseDate = 3;
+    optional int64 DateAdded = 4;
+    string Name = 11;
+    string Description = 13;
+    repeated bytes Tags = 16;
+    repeated bytes Genres = 18;
+    repeated GameVariant GameVariants = 19;
+    string SortingName = 22;
+    repeated string Series = 24;
+}
+
+message GameVariant {
+    bytes Id = 1;
+    string Name = 2;
+    optional string SubName = 3;
+    string Description = 4;
+    repeated bytes Features = 6;
+    repeated bytes Platforms = 8;
+    repeated bytes Publishers = 12;
+    repeated bytes Developers = 15;
+    repeated LibraryGame LibraryGames = 9;
+}
+
+message UserGameInfo {
+    bytes UserId = 1;
+    bytes GameId = 2;
+    bool Favorite = 3;
+    optional int64 LastPlayed = 5;
+    optional int64 TimePlayed = 6;
+    optional int32 Score = 7;
+    bytes CompletionStatus = 10;
+    optional string Notes = 14;
+    int64 PlayCount = 23;
+    repeated bytes Categories = 26;
+}
+
+message LibraryGame {
+    bytes Id = 1;
+    bytes LibraryId = 2;
+    repeated HostState HostStates = 3;
+    string Name = 4;
+    string Description = 5;
+}
+
+message HostState {
+    bytes HostId = 1;
+    repeated HostGame Games = 2;
+}
+
+message HostGame {
+             bytes  Id          = 1;
+             bool   Installed   = 2;
+             bool   Playing     = 3;
+    repeated string PlayActions = 4;
+             int64  Size        = 5;
+    repeated bytes  Platforms   = 6;
+}

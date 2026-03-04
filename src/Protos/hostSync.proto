@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package tmp;
+
+service Update {
+    rpc GameChanged  (GameChangedRequest)  returns (GameChangedReply);
+    rpc GamesAdded   (GamesAddedRequest)   returns (GamesAddedReply);
+    rpc GamesRemoved (GamesRemovedRequest) returns (GamesRemovedReply);
+}
+
+message GameChangedRequest {
+}
+message GameChangedReply {
+}
+
+message GamesAddedRequest {
+}
+message GamesAddedReply {
+}
+
+message GamesRemovedRequest {
+}
+message GamesRemovedReply {
+}

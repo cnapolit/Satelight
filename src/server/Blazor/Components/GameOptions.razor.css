@@ -1,0 +1,28 @@
+.game-options {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    display: flex;
+    background-color: rgba(1,1,1,0.65);
+    backdrop-filter: blur(1px);
+}
+
+#game-options-buttons {
+    margin: auto;
+    max-height: 80%;
+    overflow-y: scroll;
+    border-radius: 8px;
+    width: 15%;
+}
+
+.game-option-button {
+    background-color: rgba(1,1,1,0.7);
+    color: white;
+    text-align: center;
+    font-size: 30px;
+}
+
+#game-options-container.hide {
+    display: none;
+}

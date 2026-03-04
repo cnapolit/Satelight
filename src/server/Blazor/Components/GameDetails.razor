@@ -1,0 +1,131 @@
+@using Server.Models.Events
+@using Server.Models.UserInterface
+@using Server.Services
+@using Server.Services.Host
+@implements IDisposable
+@implements IAsyncDisposable
+@inject IDatabaseClient DatabaseClient
+@inject BrowseState BrowseState
+@inject HostClient HostClient
+@inject IJSRuntime JS
+
+<div id="game-details" class="hide">
+
+    <div id="play-button" class="page-button" tabindex="0"
+         @onclick="PlayGameAsync">
+        <div id="play-button-text" class="page-button-text">@_playAction</div>
+    </div>
+    @if(BrowseState.GameInfo != null)
+    {
+        <div id="details" tabindex="0">
+            @foreach (var detail in _detailsList)
+            {
+                <div class="detail-item">@((MarkupString)detail)</div>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(BrowseState.GameInfo.TrailerUrl))
+        {
+            <video id="trailer" loop muted controls autoplay>
+                <source src="@BrowseState.GameInfo.TrailerUrl" type="video/mp4">
+            </video>
+        }
+    }
+</div>
+
+@code
+{
+    private List<string> _detailsList =>
+    [
+        BrowseState.GameInfo!.Description,
+        BrowseState.GameInfo.Description,
+        BrowseState.GameInfo.Description
+    ];
+
+    protected override void OnInitialized()
+    {
+        BrowseState.GameInfoChanged += StateHasChanged;
+        HostClient.GameUpdated += OnGameOperationUpdatedAsync;
+    }
+
+    public void Dispose()
+    {
+        BrowseState.GameInfoChanged -= StateHasChanged;
+        HostClient.GameUpdated -= OnGameOperationUpdatedAsync;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_jsModule is not null)
+        {
+            await _jsModule.DisposeAsync();
+        }
+    }
+
+    private string _playAction => BrowseState.GameInfo?.Versions.First().Status switch
+    {
+        GameStatus.Running   => "STOP",
+        GameStatus.Installing => "INSTALLING",
+        GameStatus.Installed => "PLAY",
+        GameStatus.Uninstalling => "UNINSTALLING",
+        _                => "INSTALL"
+    };
+
+    private async Task PlayGameAsync()
+    {
+        if (BrowseState.GameInfo is null)
+        {
+            return;
+        }
+
+        var operation = BrowseState.GameInfo.Versions.First().Status switch
+        {
+            GameStatus.Running   => DatabaseClient.StopGameAsync   (BrowseState.GameInfo.Id),
+            GameStatus.Installed => DatabaseClient.StartGameAsync  (BrowseState.GameInfo.Id),
+            _                => DatabaseClient.InstallGameAsync(BrowseState.GameInfo.Id)
+        };
+
+        await operation;
+    }
+
+    private async Task OnGameOperationUpdatedAsync(GameUpdatedEventArgs args)
+    {
+        if (BrowseState.SelectedGame is null || BrowseState.GameInfo is null)
+        {
+            return;
+        }
+
+        if (!Guid.TryParse(BrowseState.SelectedGame.Id, out var selectedGameId))
+        {
+            return;
+        }
+
+        if (args.GameId != selectedGameId)
+        {
+            return;
+        }
+
+        var gameId = BrowseState.SelectedGame.Id;
+        var updatedGameInfo = await DatabaseClient.GetGameInfoAsync(gameId);
+        await InvokeAsync(() =>
+        {
+            if (!Guid.TryParse(BrowseState.SelectedGame.Id, out selectedGameId) && args.GameId != selectedGameId)
+            {
+                return;
+            }
+            BrowseState.GameInfo = updatedGameInfo;
+        });
+    }
+
+    private async Task OnFail()
+    {
+        // js interop revert ui
+    }
+
+    private IJSObjectReference? _jsModule;
+
+    private async Task RevealHdmiVideoAsync()
+    {
+        _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/GameDetails.js");
+        await _jsModule.InvokeVoidAsync("revealHdmiVideo");
+    }
+}

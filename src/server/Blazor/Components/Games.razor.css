@@ -1,0 +1,76 @@
+#blurred-background {
+    position: fixed;
+    bottom: 0%;
+    width: 100%;
+    background-color: rgba(128, 115, 115, 0.2);
+    backdrop-filter: blur(20px);
+    border-top: rgba(108, 108, 108, 0.25);
+    border-top-style: solid;
+    box-shadow: 0px -3px 15px black;
+    height: 43%;
+    transition: bottom .125 linear;
+}
+
+#blurred-background.hide {
+    bottom: -43%;
+}
+
+#games {
+    padding: 20px 75px 40px 75px;
+    /* gap: 20px; does not work with web os sim */
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    scroll-padding-left: 100px;
+    scroll-padding-right: 1500px;
+}
+
+.games-scroll {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-self: end;
+}
+
+.games-scroll::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+}
+
+.games-scroll > * {
+    margin-right: 25px;
+}
+
+/* .games-scroll > *:last-child {
+    margin-right: 0;
+} */
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 250px));
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.game-item {
+    border-radius: 10px;
+    box-shadow: 5px 5px 10px 1px black;
+    height: fit-content;
+    transition: transform 0.3s ease-out;
+}
+
+.game-padding {
+    opacity: 0;
+}
+
+.game-cover {
+    width: 300px;
+    max-height: 400px;
+    border-radius: 10px;
+}
+
+.game-cover:hover, .focused-item .game-cover, .selected-item .game-cover {
+    transform: scale(1.05);
+}
+
+.selected-item:focus .game-cover {
+    box-shadow: 0 0 0 5px white;
+}

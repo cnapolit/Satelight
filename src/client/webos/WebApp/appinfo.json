@@ -1,0 +1,10 @@
+{
+  "id": "com.domain.satelight",
+  "version": "0.0.1",
+  "vendor": "Satelight",
+  "type": "web",
+  "main": "index.html",
+  "title": "Satelight Web App Client",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png"
+}

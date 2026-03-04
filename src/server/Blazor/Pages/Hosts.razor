@@ -1,0 +1,138 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using Server.Blazor.Layout
+@using Server.Database
+@using Server.Services
+@using Server.Models.Database
+@rendermode InteractiveServer
+@inject IDbContextFactory<DatabaseContext> DatabaseContextFactory
+@layout MainLayout
+@page "/Hosts"
+
+<PageTitle>Hosts</PageTitle>
+<h3>Hosts</h3>
+<button class="btn btn-primary" @onclick="ShowAddHostModal">Add Host</button>
+<button class="btn btn-primary" @onclick="RemoveHostAsync">Remove Host</button>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Host Name</th>
+        <th>Ip Address</th>
+        <th>Port</th>
+        <th>Mac Address</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var host in _hosts)
+    {
+        <tr>
+            <td>@host.DisplayName</td>
+            <td>@host.Ip</td>
+            <td>@host.Port</td>
+            <td>@host.FormattedMacAddress</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@if (_showAddHostModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Host</h5>
+                    <button type="button" class="btn-close" @onclick="HideAddHostModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input class="form-control" @bind="_newHost.Name" @onkeypress="OnKeyPress" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">IP Address</label>
+                        <input class="form-control" @bind="_newHost.IpAddress" @onkeypress="OnKeyPress" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Port</label>
+                        <input class="form-control" type="number" @bind="_newHost.Port" @onkeypress="OnKeyPress" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="HideAddHostModal">Cancel</button>
+                    <button class="btn btn-primary" @onclick="AddHostAsync">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Host> _hosts = [];
+    private bool _showAddHostModal;
+
+    private class HostEntry
+    {
+        public string Name      { get; set; }
+        public string IpAddress { get; set; }
+        public short  Port      { get; set; }
+    }
+
+    private HostEntry _newHost = new();
+
+    protected override async Task OnInitializedAsync()
+    { 
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        _hosts = await databaseContext.Hosts.ToListAsync(); 
+    }
+
+    private void ShowAddHostModal()
+    {
+        _newHost          = new();
+        _showAddHostModal = true;
+    }
+
+    private void HideAddHostModal() => _showAddHostModal = false;
+
+    private async Task AddHostAsync()
+    {
+        HostNetworkService hostNetworkService = new();
+        var (dnsName, macAddress) = await hostNetworkService.GetAsync(_newHost.IpAddress);
+        Host host = new()
+        {
+            DisplayName = string.IsNullOrWhiteSpace(_newHost.Name) ? string.Empty : _newHost.Name,
+            Ip          = _newHost.IpAddress,
+            Port        = _newHost.Port,
+            MacAddress  = macAddress,
+            DnsName     = dnsName
+        };
+
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        databaseContext.Hosts.Add(host);
+        await databaseContext.SaveChangesAsync();
+        _hosts = await databaseContext.Hosts.ToListAsync();
+        StateHasChanged();
+        HideAddHostModal();
+    }
+
+    private async Task RemoveHostAsync()
+    {
+        var host = _hosts.LastOrDefault();
+        if (host != null)
+        {
+            await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+            databaseContext.Hosts.Remove(host);
+            await databaseContext.SaveChangesAsync();
+            _hosts = await databaseContext.Hosts.ToListAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnKeyPress(KeyboardEventArgs args)
+    {
+        if (args.Key is "Enter" && !string.IsNullOrWhiteSpace(_newHost.IpAddress) && _newHost.Port > -1)
+        {
+            await AddHostAsync();
+        }
+    }
+}

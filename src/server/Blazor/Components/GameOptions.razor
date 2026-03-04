@@ -1,0 +1,10 @@
+<div id="game-options-container" class="hide">
+    <div id="game-options" class="focused-menu">
+        <div class="installButton game-option-button" tabindex="0">Install</div>
+        <div class="installButton game-option-button" tabindex="0">Uninstall</div>
+    </div>
+    @* @foreach(var version in BrowseState.SelectedGame.Versions)
+    {
+        <button class="installButton game-option-button" tabindex="0">Install @version.Name</button>
+    } *@
+</div>

@@ -1,0 +1,125 @@
+﻿<div id="@FadeImageId">
+    <div class="fade-image img-1"></div>
+    <div class="fade-image img-2"></div>
+</div>
+
+<style>
+    .fade-image
+    {
+        position: absolute;
+        object-fit: cover;
+        transition: opacity .75s ease-in-out;
+        background-size: contain;
+        /* background-repeat: no-repeat; */
+        width: 100vw;
+        height: 100vh;
+        background-color: #121212;
+        overflow: hidden;
+    }
+
+    .filter {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .img-1
+    {
+        opacity: @(imageOneIsActive ? "1" : "0");
+        background-image: url('@(imageOne)');
+    }
+
+    .img-2
+    {
+        opacity: @(imageOneIsActive ? "0" : "1");
+        background-image: url('@(imageTwo)');
+    }
+
+    #@(FadeImageId) {
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        z-index: -3;
+        transition: transform 0.125s linear, background-color 0.125s linear;
+    }
+
+    #@(FadeImageId).game-details {
+        transform: scale(1.76) translateY(21%);
+    }
+
+    #@(FadeImageId).game-details.hide {
+        transform: scale(1.76) translateY(-100%);
+    }
+
+    #@(FadeImageId).hide {
+        transform: translateY(-100%);
+    }
+</style>
+
+@code {
+    private bool imageOneIsActive;
+    private string imageOne;
+    private string imageTwo;
+    private string nextImage;
+    
+    [Parameter]
+    public string FadeImageId { get; set; }
+    private Task imageTask = Task.CompletedTask;
+    private object imgLock = new object();
+    
+
+    
+    [Parameter]
+    public string Img
+    {
+        set
+        {
+            if (imageOneIsActive)
+            {
+                imageTwo = value;
+            }
+            else
+            {
+                imageOne = value;
+            }
+            imageOneIsActive = !imageOneIsActive;
+            StateHasChanged();
+            return;
+            lock (imgLock)
+            {
+                nextImage = value;
+                lastChangeTime = DateTime.Now;
+            }
+            if (imageTask.IsCompleted)
+            {
+                imageTask = InvokeAsync(SetNextImgAsync);
+            }
+        }
+    }
+
+    private DateTime lastChangeTime = DateTime.MinValue;
+
+    private async Task SetNextImgAsync()
+    {
+        var delay = TimeSpan.FromMilliseconds(250);
+        while (true)
+        {
+            TimeSpan elapsed;
+            lock (imgLock)
+            if   ((elapsed = DateTime.Now - lastChangeTime) > delay)
+            {
+                if (imageOneIsActive)
+                {
+                    imageTwo = nextImage;
+                }
+                else
+                {
+                    imageOne = nextImage;
+                }
+                imageOneIsActive = !imageOneIsActive;
+                StateHasChanged();
+                break;
+            }
+            await Task.Delay(delay - elapsed);
+        }
+    }
+
+}

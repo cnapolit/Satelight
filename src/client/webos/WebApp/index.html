@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <!-- content="0;url=http://192.168.1.153:5224/" -->
+    <!-- Remove meta refresh; it fires immediately even if server isn't ready -->
+    <!-- <meta http-equiv="refresh" content="0;url=http://localhost:5224/" /> -->
+
+    <script>
+      // const TARGET = "http://localhost:5224/";
+      const TARGET = "http://192.168.1.153:5224/";
+      const INTERVAL_MS = 750;
+
+      async function waitForServerThenRedirect() {
+        while (true) {
+          try {
+            // no-cors lets the request "succeed" even if CORS isn't enabled;
+            // if the server is down, fetch will still throw.
+            await fetch(TARGET, { mode: "no-cors", cache: "no-store" });
+            window.location.replace(TARGET);
+            return;
+          } catch (e) {
+            await new Promise((r) => setTimeout(r, INTERVAL_MS));
+          }
+        }
+      }
+
+      window.addEventListener("load", waitForServerThenRedirect);
+    </script>
+  </head>
+  <body>
+    Waiting for server…
+  </body>
+</html>

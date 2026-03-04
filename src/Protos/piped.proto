@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package piped;
+
+message Body {
+    string Id        = 1;
+    RequestType Type = 2; 
+    bytes Parameters = 3;
+}
+
+message InitBody {
+}
+message InitReply {
+    string DataPath = 1;
+    int32 Port      = 2;
+}
+
+message GetGameCoversBody {
+    bytes Id = 1;
+}
+message GetGameCoversReply {
+    repeated string Covers = 1;
+}
+
+message GetGameBackgroundsBody {
+    bytes Id = 1;
+}
+message GetGameBackgroundsReply {
+    repeated string Backgrounds = 1;
+}
+
+enum RequestType {
+    None          =  0;
+    Init          =  1;
+    GetGame       =  2;
+    StreamGames   =  3;
+    CountGames    =  4;
+    GetCache      =  5;
+    ListTags      =  6;
+    ListPlatforms =  7;
+    ListGenres    =  8;
+    ListLibraries =  9;
+    ListSeries    = 10;
+    ListFeatures  = 11;
+    ListCompanies = 12;
+    GetOp         = 13;
+    ListOps       = 14;
+    StartGame     = 15;
+    StopGame      = 16;
+    InstallGame   = 17;
+    UninstallGame = 18;
+    UpdateGame    = 19;
+    RemoveGame    = 20;
+    RepairGame    = 21;
+    MoveGame      = 22;
+    GetGameCover  = 23;
+    GetGameBackground = 24;
+    UpdateGameCover = 25;
+    UpdateGameBackground = 26;
+    UpdateGameIcon = 27;
+    UpdateGameTrailer = 28;
+    UpdateGameMicroTrailer = 29;
+}

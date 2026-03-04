@@ -1,0 +1,353 @@
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+input SignInInput {
+  username: String!
+  password: String!
+  rememberMe: Boolean
+}
+
+type Claim {
+  user: User!
+  credential: String!
+}
+
+type Mutation {
+  signIn(input: SignInInput): Claim
+  signOut: User
+  syncLibrary(libraryData: LibraryInput!): Library
+  updateRelease(release: ReleaseInput!): Release!
+  startRelease(id: String!): Release!
+  restartRelease(id: String!): Release!
+  stopRelease(id: String!): Release!
+  updateSiteSetting(id: String! value: String!): SiteSetting!
+  signUp(input: SignUpInput): Claim!
+  updateUserSettings(input: SaveSettingsInput!): [UserSetting!]!
+}
+
+type Query {
+  feature(id: String!): Feature
+  filterItems: [FilterItem!]!
+  game(id: String!): Game
+  libraries(username: String!): [Library!]!
+  library(libraryId: String!): Library
+  platform(id: String!): Platform
+  playlists(libraryId: String!): [Playlist!]!
+  siteSettings: [SiteSetting!]!
+  accountSetupStatus: AccountSetupStatus!
+  source(id: String!): Source
+  tag(id: String!): Tag
+  me: User
+  lookupUser(username: String!): PublicUser
+  users(page: Int perPage: Int): Users!
+}
+
+type Subscription {
+  entityUpdated: [EntityUpdateDetails!]!
+  librarySynced: [EntityUpdateDetails!]!
+}
+
+"Date description"
+scalar Date
+
+"DateTime description"
+scalar DateTime
+
+"The `Byte` scalar type represents byte value as a Buffer"
+scalar Byte
+
+type CompletionStatus {
+  id: String!
+  name: String!
+  releases: [Release]!
+  playniteId: String
+}
+
+type Feature {
+  id: String!
+  name: String!
+  playniteId: String
+  games: [Game!]!
+}
+
+type FilterItemValue {
+  value: String!
+  display: String!
+}
+
+enum RelatedType {
+  Release
+  Platform
+  Source
+  Genre
+  Publisher
+  Developer
+  Tag
+  Playlist
+}
+
+type FilterItem {
+  name: String!
+  field: String!
+  allowedValues: [FilterItemValue!]!
+  relatedType: RelatedType
+}
+
+type Game {
+  id: String!
+  primaryRelease: Release
+  releases: [Release!]!
+  library: Library!
+}
+
+input FilterItemInput {
+  field: String!
+  relatedType: RelatedType
+  values: [String!]!
+}
+
+input Filter {
+  name: String
+  filterItems: [FilterItemInput!]
+}
+
+type Library {
+  id: String!
+  name: String
+  games: [Game!]!
+  platforms: [Platform!]!
+  playlists: [Playlist!]!
+  sources: [Source!]!
+  features: [Feature!]!
+  completionStates: [CompletionStatus!]!
+  tags: [Tag!]!
+}
+
+input LibraryReleaseInput {
+  id: String!
+  title: String!
+  releaseDate: DateTime
+  communityScore: Int
+  completionStatus: String
+  criticScore: Int
+  description: String
+  features: [String!]
+  hidden: Boolean!
+  recentActivity: DateTime
+  source: String!
+  tags: [String!]
+  playtime: String
+}
+
+input LibraryPlatformInput {
+  id: String!
+  name: String!
+}
+
+input LibrarySourceInput {
+  id: String!
+  name: String!
+  platform: String!
+}
+
+input LibraryTagInput {
+  id: String!
+  name: String!
+}
+
+input LibraryCompletionStateInput {
+  id: String!
+  name: String!
+}
+
+input LibraryFeatureInput {
+  id: String!
+  name: String!
+}
+
+input LibraryUpdateInput {
+  releases: [LibraryReleaseInput!]!
+  platforms: [LibraryPlatformInput!]!
+  sources: [LibrarySourceInput!]!
+  tags: [LibraryTagInput!]!
+  completionStates: [LibraryCompletionStateInput!]!
+  features: [LibraryFeatureInput!]!
+}
+
+input LibraryRemovalInput {
+  releases: [String!]!
+  platforms: [String!]!
+  sources: [String!]!
+  tags: [String!]!
+  completionStates: [String!]!
+  features: [String!]!
+}
+
+input LibraryInput {
+  source: String!
+  libraryId: String!
+  name: String
+  update: LibraryUpdateInput!
+  remove: LibraryRemovalInput!
+}
+
+type EntityCollectionUpdate {
+  source: String!
+  updated: [EntityCollectionUpdateDetails!]!
+  removed: [EntityCollectionUpdateDetails!]!
+}
+
+type EntityCollectionUpdateDetails {
+  type: String!
+  id: String!
+}
+
+type EntityUpdateField {
+  key: String!
+  value: String
+  values: [String!]!
+  playniteId: String
+  playniteIds: [String!]!
+}
+
+type EntityUpdateDetails {
+  source: String!
+  type: String!
+  id: String!
+  playniteId: String
+  fields: [EntityUpdateField!]!
+}
+
+type Platform {
+  id: String!
+  name: String!
+  playniteId: String
+  games: [Game!]!
+  icon: String
+}
+
+type Playlist {
+  id: String!
+  name: String!
+  games: [Game!]!
+}
+
+type Release {
+  id: String!
+  communityScore: Int
+  completionStatus: CompletionStatus
+  cover: String
+  criticScore: Int
+  description: String
+  features: [Feature!]!
+  game: Game!
+  hidden: Boolean!
+  platform: Platform!
+  playniteId: String
+  recentActivity: DateTime
+  releaseDate: Date
+  releaseYear: Int
+  source: Source!
+  title: String!
+  tags: [Tag!]!
+  runState: String!
+}
+
+input ReleaseInput {
+  id: String!
+  title: String
+  releaseDate: DateTime
+  communityScore: Int
+  completionStatus: String
+  criticScore: Int
+  description: String
+  features: [String!]
+  hidden: Boolean
+  recentActivity: DateTime
+  source: String
+  tags: [String!]
+  playtime: String
+  runState: String
+}
+
+type SiteSetting {
+  id: String!
+  name: String!
+  value: String!
+  dataType: String!
+  description: String!
+}
+
+type AccountSetupStatus {
+  isSetup: Boolean!
+  allowAnonymousAccountCreation: Boolean!
+}
+
+type Source {
+  id: String!
+  playniteId: String
+  name: String!
+  releases: [Release]!
+}
+
+type Tag {
+  id: String!
+  name: String!
+  playniteId: String
+  games: [Game]!
+}
+
+type User {
+  id: String!
+  email: String!
+  username: String!
+  isAuthenticated: Boolean!
+  credential: String
+  permission: Int!
+  libraries: [Library!]!
+  settings: [UserSetting!]!
+}
+
+type PublicUser {
+  id: String!
+  username: String!
+  libraries: [Library!]!
+}
+
+type UserSetting {
+  id: String!
+  code: String!
+  name: String!
+  value: String
+  dataType: String!
+  helperText: String!
+  description: String!
+}
+
+type Users {
+  userCount: Int!
+  users: [PublicUser!]!
+}
+
+input SignUpInput {
+  email: String!
+  username: String!
+  name: String!
+  password: String!
+  passwordConfirmation: String!
+}
+
+input SaveSettingsInput {
+  settings: [UserSettingInput!]!
+}
+
+input UserSettingInput {
+  id: String!
+  value: String
+}
+
+"Indicates exactly one field must be supplied and this field must not be `null`."
+directive @oneOf on INPUT_OBJECT

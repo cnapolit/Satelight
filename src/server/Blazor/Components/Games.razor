@@ -1,0 +1,89 @@
+@using Server.Models.UserInterface
+@using Server.Services
+@using Server.Common.Extensions
+@inject IDatabaseClient DatabaseClient
+@inject BrowseState BrowseState
+
+<div id="blurred-background">
+    @switch (BrowseState.GameListState)
+    {
+        case GameListState.Scroll:
+            <div id="games" class="games-list games-scroll">
+                @BrowseState.Games.Select(CreateScrollGameDiv).Render()
+                @CreateGamePaddingDiv()
+                @CreateGamePaddingDiv()
+                @CreateGamePaddingDiv()
+                @CreateGamePaddingDiv()
+                @CreateGamePaddingDiv()
+            </div>
+            break;
+        case GameListState.Grid:
+            <div id="games" class="games-full games-grid">
+                @BrowseState.Games.Select(CreateGridGameDiv).Render()
+            </div>
+            break;
+        case GameListState.MultiScroll:
+            <div id="games" class="games-full games-multi-scroll">
+                @foreach(var filter in _filters)
+                {
+                    <div class="filter-section">
+                        <h2 class="filter-title">@filter.Name</h2>
+                        <div class="games-list">
+                            @GetFilteredGames(filter.Id).Select(CreateScrollGameDiv).Render()
+                        </div>
+                    </div>
+                }
+            </div>
+            break;
+    }
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        BrowseState.Games = await DatabaseClient.GetGamesAsync();
+        BrowseState.SelectedGame = BrowseState.Games.FirstOrDefault();
+    }
+    private RenderFragment CreateScrollGameDiv(GameDisplayInfo game) => CreateGameDiv(game, game.Cover);
+    private RenderFragment   CreateGridGameDiv(GameDisplayInfo game) => CreateGameDiv(game, game.GridCover);
+    private RenderFragment CreateGameDiv(GameDisplayInfo game, string? cover) =>
+        @<div class="game-item" tabindex="0" id="@game.Id"
+              @onclick="() => SelectGame(game)"
+              @oncontextmenu="ShowGameDetailsAsync">
+            <img src="@(cover ?? "/res/defaultCover.png")" alt="@game.Name" class="game-cover"/>
+        </div>;
+    private RenderFragment CreateGamePaddingDiv() =>
+        @<div class="game-item game-padding">
+            <img src="/res/defaultCover.png" class="game-cover"/>
+        </div>;
+
+    private class DisplayFilter
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    private List<DisplayFilter> _filters;
+
+    private List<GameDisplayInfo> GetFilteredGames(string filterId)
+    {
+        return [];
+    }
+    
+    private async Task SelectGame(GameDisplayInfo game)
+    {
+        if (game.Id != BrowseState.SelectedGame?.Id)
+        {
+            BrowseState.SelectedGame = game;
+        }
+        else
+        {
+            await ShowGameDetailsAsync();
+        }
+    }
+
+    private async Task ShowGameDetailsAsync()
+    {
+        BrowseState.GameInfo = await DatabaseClient.GetGameInfoAsync(BrowseState.SelectedGame!.Id);
+    }
+}

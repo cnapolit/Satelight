@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>13.0</LangVersion>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Common.$(MSBuildProjectName.Replace(" ", "_").Split(".")[0])</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="..\Utility\Models\" />
+    <Folder Include="..\Utility\Extensions\" />
+    <Folder Include="Classes.Core\" />
+    <Folder Include="Classes\" />
+    <Folder Include="Functions.Core\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="4.0.0-rc2" />
+    <PackageReference Include="System.Text.Json" Version="9.0.7" />
+  </ItemGroup>
+
+</Project>

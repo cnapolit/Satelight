@@ -1,0 +1,36 @@
+@using Microsoft.EntityFrameworkCore
+@using Server.Database
+@using Server.Models.Database
+@rendermode InteractiveServer
+@inject IDbContextFactory<DatabaseContext> DatabaseContextFactory
+@page "/Platforms"
+
+<PageTitle>Platforms</PageTitle>
+<h3>Platforms</h3>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Id</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var platform in _platforms)
+    {
+        <tr>
+            <td>@platform.Name</td>
+            <td>@platform.Id</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    private List<Platform> _platforms = [];
+    protected override async Task OnInitializedAsync()
+    { 
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        _platforms = await databaseContext.Platforms.ToListAsync(); 
+    }
+}

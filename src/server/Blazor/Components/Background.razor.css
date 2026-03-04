@@ -1,0 +1,10 @@
+#games-background {
+    position: absolute;
+    background-size: contain;
+    /* background-repeat: no-repeat; */
+    width: 100%;
+    height: 100vh;
+    background-color: #121212;
+    overflow: hidden;
+    z-index: -1;
+}

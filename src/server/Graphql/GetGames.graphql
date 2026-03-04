@@ -1,0 +1,23 @@
+query GetUsers {
+  users(page: 1 perPage: 10) {
+    users {
+      username
+    }
+  }
+}
+
+query GetGames($userName: String!) {
+    libraries(username: $userName) {
+        games {
+            id
+            primaryRelease {
+                id
+            }
+            releases {
+                id
+                title
+                cover
+            }
+        }
+    }
+}

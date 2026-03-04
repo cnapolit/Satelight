@@ -1,0 +1,75 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.hdmi {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: -999;
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+::deep *:focus {
+    outline: none;
+    /* box-shadow: 0 0 0 5px white; */
+}
+
+::deep * {
+    scroll-behavior: smooth;
+}
+
+::deep .page-button {
+    border-radius: .5em;
+    border-width: 5px;
+    border-color: transparent;
+    border-style: solid;
+    background: #5555559c;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+::deep .page-button:focus {
+    border-color: #f1eadc;
+}
+::deep .page-button.selected-item {
+    background: white;
+    color: black;
+}
+::deep .page-button-text {
+    color: white;
+    text-align: center;
+    width: 4em;
+    margin: .125em;
+    overflow: hidden;
+    white-space: nowrap;
+}
+::deep .page-button.selected-item > .page-button-text {
+    color: black;
+}

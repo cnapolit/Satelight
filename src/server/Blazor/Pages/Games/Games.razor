@@ -1,0 +1,484 @@
+@using Microsoft.EntityFrameworkCore
+@using Server.Blazor.Layout
+@using Server.Database
+@using Server.Services
+@using Server.Models.Database
+@using System.Linq.Expressions
+@using System.Text.Json
+@using Server.Services.Host
+@rendermode InteractiveServer
+@inject IDbContextFactory<DatabaseContext> DatabaseContextFactory
+@inject MediaFileService MediaFileService
+@inject HostClient HostClient
+@layout MainLayout
+@page "/Games"
+
+<PageTitle>Games</PageTitle>
+<h3>Games</h3>
+
+<div id="filter">
+    <Field>
+        @* <TextEdit Placeholder="Name" @bind-Text="@_nameFilter"/> *@
+    </Field>
+
+    <DropdownList TItem="NamedDatabaseObject" TValue="Guid"
+                  Data="@_filters"
+                  TextField="@(f => f.Name)"
+                  ValueField="@(f => f.Id)"
+                  @bind-SelectedValues="@_selectedFilters"
+                  SelectionMode="DropdownListSelectionMode.Checkbox"
+                  MaxMenuHeight="200px">
+        Matches
+    </DropdownList>
+
+    @foreach(var filter in _filterFields) {
+        <DropdownList TItem="NamedDatabaseObject" TValue="Guid"
+                      Data="@filter.Value.Fields"
+                      TextField="@(f => f.Name)"
+                      ValueField="@(f => f.Id)"
+                      @bind-SelectedValues="@filter.Value.SelectedIds"
+                      SelectionMode="DropdownListSelectionMode.Checkbox"
+                      MaxMenuHeight="200px">
+            @filter.Key
+        </DropdownList>
+    }
+    @* <Field>
+        <FieldLabel>Release Date</FieldLabel>
+        <FieldBody>
+            <DatePicker ShowTodayButton ShowClearButton 
+                TValue="DateTime?"
+                @bind-Dates="_dates"
+                InputMode="DateInputMode.Date"
+                SelectionMode="DateInputSelectionMode.Range" />
+        </FieldBody>
+    </Field> *@
+    @* <Field>
+        <FieldLabel>Rating</FieldLabel>
+        <FieldBody>
+            <NumericEdit TValue="int?" @bind-Value="_minRating" Placeholder="Min" Min="0" Max="100" />
+            -
+            <NumericEdit TValue="int?" @bind-Value="_maxRating" Placeholder="Max" Min="0" Max="100" />
+        </FieldBody>
+    </Field> *@
+    <DropdownList TItem="string" TValue="string"
+                Data="@_sortByOptions"
+                TextField="@(f => f)"
+                ValueField="@(f => f)"
+                @bind-SelectedValue="@_selectedSortBy"
+                MaxMenuHeight="200px">
+        Sort By
+    </DropdownList>
+    <RadioGroup TValue="bool" @bind-CheckedValue="@_ascending">
+    <Radio Value="@(true)">Ascending</Radio>
+    <Radio Value="@(false)">Descending</Radio>
+</RadioGroup>
+</div>
+
+<Dropdown>
+    <DropdownToggle>
+        Load Filter
+    </DropdownToggle>
+    <DropdownMenu>
+        @foreach(var filter in _filters)
+        {
+            <DropdownItem Value="@(filter.Id)" Clicked="@LoadFilterAsync">@filter.Name</DropdownItem>
+        }
+    </DropdownMenu>
+</Dropdown>
+<button class="btn btn-primary" @onclick="FilterGamesAsync">Apply Filter</button>
+<button class="btn btn-primary" @onclick="ShowSaveFilterModal">Save Filter</button>
+<button class="btn btn-primary" @onclick="GetGamesAsync">Get Games</button>
+
+<div class="games-grid">
+    @foreach (var game in _games)
+    {
+        <div class="game-item" @onclick="() => ShowGameDetails(game)">
+            <img src="@GetCover(game)" alt="@game.Name" class="game-cover" />
+        </div>
+    }
+</div>
+
+<style>
+    .games-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 16px;
+    }
+    .game-item {
+        text-align: center;
+    }
+    .game-cover {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+</style>
+
+@if (_selectedGame != null)
+{
+    <div class="game-details-modal" @onclick="CloseGameDetails"
+        style="background: rgba(0,0,0,0.7) url('@GetBackground(_selectedGame)') center/cover no-repeat;">
+        <div class="game-details-content" @onclick:stopPropagation>
+            <img class="game-logo" src="@GetLogo(_selectedGame)" alt="@_selectedGame.Name" />
+            <div class="game-description">@_selectedGame.Description</div>
+        </div>
+    </div>
+}
+
+<style>
+.game-details-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.game-details-content {
+    background: #222;
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    text-align: center;
+    color: #fff;
+}
+.game-logo {
+    margin-bottom: 16px;
+}
+.game-description {
+    margin-top: 12px;
+    font-size: 1.2em;
+}
+</style>
+
+@if (_showAddGamesModal)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Get Games</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label">@ProgressDescription</label>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: @Progress%;" aria-valuenow="@Progress" aria-valuemin="0" aria-valuemax="@ProgressTotal">@Progress / @ProgressTotal</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: @StepProgress%;" aria-valuenow="@StepProgress" aria-valuemin="0" aria-valuemax="@StepProgressTotal">@StepProgress / @StepProgressTotal</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CancelGetGames">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<Modal @ref="_modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Save Filter...</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Field>
+                <FieldLabel>Name</FieldLabel>
+                @* <TextEdit Placeholder="Filter Name" @bind-Text="@_filterName"/> *@
+            </Field>
+            <Check TValue="bool" @bind-Checked="@_isVisible">Visible</Check>
+        </ModalBody>
+        <ModalFooter>
+            <Button Clicked="@_modalRef.Hide">Close</Button>
+            <Button Clicked="@SaveFilterAsync">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+@code {
+    private List<Game> _games = [];
+    private List<Guid> _genreFilters = [];
+    private List<Guid> _featureFilters = [];
+    private List<Guid> _platformFilters = [];
+    private int? _minRating;
+    private int? _maxRating;
+    private List<DateTime?> _dates = [];
+    
+    private class FilterField
+    {
+        public List<NamedDatabaseObject> Fields { get; set; } = [];
+        public IReadOnlyList<Guid> SelectedIds { get; set; } = [];
+    }
+    private Dictionary<string, FilterField> _filterFields = new();
+    private bool _showAddGamesModal;
+    private bool _showSaveFilterModal;
+//convert the rest to nameof
+    private string[] _filterKeys = [
+        nameof(Tag),
+        nameof(Platform),
+        nameof(Library),
+        nameof(Genre),
+        nameof(Feature)
+        @* nameof(Owner), *@
+        @* "Developer", *@
+        @* "Publisher", *@
+        @* "Installed", *@
+        @* "Size", *@
+        @* "Release Date" *@
+    ];
+
+    private string _nameFilter = string.Empty;
+    private string[] _sortByOptions = [
+        nameof(Game.Name),
+        // nameof(GameVariant.ReleaseDate),
+        nameof(HostGame.Size)
+    ];
+    private string? _selectedSortBy;
+    private bool _ascending;
+    private Filter[] _filters = [];
+    private IReadOnlyList<Guid> _selectedFilters = [];
+
+    private string ProgressDescription { get; set; } = string.Empty;
+    private int    Progress            { get; set; }
+    private int    ProgressTotal       { get; set; }
+    private int    StepProgress        { get; set; }
+    private int    StepProgressTotal   { get; set; }
+
+    delegate Task<List<NamedDatabaseObject>> GetFields(DatabaseContext databaseContext);
+    private Task<List<NamedDatabaseObject>> GetGenresAsync() => GetFieldsAsync(GetGenres);
+    private static DbSet<Genre> GetGenres(DatabaseContext databaseContext) => databaseContext.Genres;
+
+    private async Task<List<NamedDatabaseObject>> GetFieldsAsync<TField>(GetSet<TField> getFieldsFunc) where TField : NamedDatabaseObject
+    {
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        return await getFieldsFunc(databaseContext).Cast<NamedDatabaseObject>().ToListAsync();
+    }
+    delegate DbSet<TField> GetSet<TField>(DatabaseContext databaseContext) where TField : NamedDatabaseObject;
+
+    private Game? _selectedGame;
+    private Modal _modalRef;
+    private string _filterName;
+    private bool _isVisible;
+
+    private void ShowGameDetails(Game game) => _selectedGame = game;
+
+    private void CloseGameDetails() => _selectedGame = null;
+
+    private async Task LoadFilterAsync(object arg)
+    {   
+        var filterId = arg as Guid?;
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        var filter = await databaseContext.Filters.AsNoTracking().FirstAsync(f => f.Id == filterId);
+        
+        var filterDefinition = JsonSerializer.Deserialize<FilterDefinition>(filter.Definition);
+        foreach (var condition in filterDefinition.Conditions)
+        {
+            if (condition.Field == nameof(Game.Name))
+            {
+                _nameFilter = condition.Value as string ?? string.Empty;
+            }
+            else if (_filterKeys.Contains(condition.Field))
+            {
+                if (condition.Value is not JsonElement { ValueKind: JsonValueKind.Array } selectedIds) continue;
+                var ids = selectedIds.EnumerateArray()
+                    .Where(e => e.ValueKind == JsonValueKind.String && Guid.TryParse(e.GetString(), out _))
+                    .Select(e => Guid.Parse(e.GetString()!))
+                    .ToList();
+                _filterFields[condition.Field].SelectedIds = ids;
+            }
+        }
+
+        await FilterGamesAsync(databaseContext);
+    }
+
+    private void ShowSaveFilterModal() => _modalRef.Show();
+    private async Task SaveFilterAsync()
+    {
+        await _modalRef.Hide();
+        FilterDefinition definition = new();
+
+        if (!string.IsNullOrWhiteSpace(_nameFilter))
+        {
+            definition.Conditions.Add(new()
+            {
+                Field = nameof(Game.Name),
+                Operator = FilterOperator.Equal,
+                Value = _nameFilter,
+                CaseSensitive = false
+            });
+        }
+
+        foreach (var filterKey in _filterKeys)
+        {
+            AddFieldFilter(definition, filterKey);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_selectedSortBy))
+        {
+            definition.SortBy = [new() { Field = _selectedSortBy, Ascending = _ascending }];
+        }
+
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        databaseContext.Filters.Add(new()
+        {
+            Name = _filterName,
+            Visible = _isVisible,
+            PreFilterIds = _selectedFilters.ToList(),
+            Definition = JsonSerializer.Serialize(definition)
+        });
+        await databaseContext.SaveChangesAsync();
+        _filterName = string.Empty;
+        _isVisible = false;
+    }
+
+    private void AddFieldFilter(FilterDefinition definition, string fieldName)
+    {
+        var selectedPlatforms = _filterFields[fieldName].SelectedIds;
+        if (selectedPlatforms.Any())
+        {   
+            definition.Conditions.Add(new()
+            {
+                Field = fieldName,
+                Operator = FilterOperator.Contains,
+                Value = selectedPlatforms
+            });
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    { 
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        _filters = await databaseContext.Filters.ToArrayAsync();
+        _games = await databaseContext.Games.ToListAsync();
+        foreach (var filter in _filterKeys)
+        {
+            var fields = filter switch
+            {
+                nameof(Tag)      => await databaseContext.Tags     .Cast<NamedDatabaseObject>().ToListAsync(),
+                nameof(Platform) => await databaseContext.Platforms.Cast<NamedDatabaseObject>().ToListAsync(),
+                nameof(Library)  => await databaseContext.Libraries.Cast<NamedDatabaseObject>().ToListAsync(),
+                nameof(Feature)  => await databaseContext.Features .Cast<NamedDatabaseObject>().ToListAsync(),
+                nameof(Genre)    => await databaseContext.Genres   .Cast<NamedDatabaseObject>().ToListAsync()
+            };
+            _filterFields[filter] = new() { Fields = fields };
+        }
+    }
+
+    private CancellationTokenSource _cancellationTokenSource = new();
+    private async Task GetGamesAsync()
+    {
+        CloseGameDetails();
+        _cancellationTokenSource = new();
+        _showAddGamesModal = true;
+        await HostClient.GetGamesAsync(UpdateProgress, UpdateStepProgress, _cancellationTokenSource.Token);
+        _showAddGamesModal = false;
+    }
+
+    private void CancelGetGames() => _cancellationTokenSource.Cancel();
+
+    private void UpdateProgress(string description, int progress, int total)
+    {
+        ProgressDescription = description;
+        Progress            = progress;
+        ProgressTotal       = total;
+    }
+
+    private void UpdateStepProgress(int progress, int total)
+    {
+        StepProgress = progress;
+        StepProgressTotal = total;
+        StateHasChanged();
+    }
+
+    private async Task FilterGamesAsync()
+    {
+        await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
+        await FilterGamesAsync(databaseContext);
+    }
+
+    private async Task FilterGamesAsync(DatabaseContext databaseContext)
+    {
+        IQueryable<Game> games = databaseContext.Games;
+        @* if (_minRating.HasValue || _maxRating.HasValue)
+        {
+            games = games.Include(g => g.GameVariants)
+                         .ThenInclude(g => g.LibraryGames)
+                         .ThenInclude(l => l.HostGames);
+        } *@
+
+        if (!string.IsNullOrWhiteSpace(_nameFilter))
+        {
+            games = games.Where(g => EF.Functions.Like(g.Name, $"%{_nameFilter}%"));
+        }
+
+        var selectedFeatures = _filterFields[nameof(Feature)].SelectedIds;
+        if (selectedFeatures.Any())
+        {
+            games = games.Include(g => g.GameVariants)
+                         .ThenInclude(g => g.Features)
+                         .Where(g => g.GameVariants.Any(v => v.Features.Any(f => selectedFeatures.Contains(f.Id))));
+        }
+
+        var selectedPlatforms = _filterFields[nameof(Platform)].SelectedIds;
+        if (selectedPlatforms.Any())
+        {
+            games = games.Include(g => g.GameVariants)
+                         .ThenInclude(g => g.Platforms)
+                         .Where(g => g.GameVariants.Any(v => v.Platforms.Any(p => selectedPlatforms.Contains(p.Id))));
+        }
+
+        var selectedLibraries = _filterFields[nameof(Library)].SelectedIds;
+        if (selectedLibraries.Any())
+        {
+            games = games.Include(g => g.GameVariants)
+                         .ThenInclude(g => g.LibraryGames)
+                         .ThenInclude(l => l.Library)
+                         .Where(g => g.GameVariants.Any(v => v.LibraryGames.Any(lg => selectedLibraries.Contains(lg.Library.Id))));
+        }
+
+        var selectedGenres = _filterFields[nameof(Genre)].SelectedIds;
+        if (selectedGenres.Any()) games = games.Include(g => g.Genres).Where(g => g.Genres.Any(genre => selectedGenres.Contains(genre.Id)));
+
+        var selectedTags = _filterFields[nameof(Tag)].SelectedIds;
+        if (selectedTags.Any()) games = games.Include(g => g.Tags).Where(g => g.Tags.Any(tag => selectedTags.Contains(tag.Id)));
+
+        if (!string.IsNullOrWhiteSpace(_selectedSortBy))
+        {
+            games = _selectedSortBy switch
+            {
+                nameof(Game.Name)     => _ascending ? games.OrderBy(g => g.SortingName) : games.OrderByDescending(g => g.SortingName),
+                nameof(HostGame.Size) => OrderBySize(games),
+                _ => games
+            };
+        }
+        
+        _games = await games.ToListAsync();
+    }
+
+    private IQueryable<Game> OrderBySize(IQueryable<Game> games)
+    {
+        games = games.Include(g => g.GameVariants)
+                     .ThenInclude(g => g.LibraryGames)
+                     .ThenInclude(lg => lg.HostGames);
+        //Expression<Func<Game,long?>> sort = (Game v) => v.LibraryGames.Min(lg => lg.HostGames.Min(hg => hg.Size));
+        Func<Expression<Func<Game,long?>>, IQueryable<Game>> orderFunc = _ascending ? games.OrderBy : games.OrderByDescending;
+        @* if (_ascending)
+        {
+            return games.OrderBy(sort);
+        }
+        else
+        {
+            return games.OrderByDescending(sort);
+        } *@
+        return orderFunc(g => g.GameVariants.Max(v => v.LibraryGames.Max(l => l.HostGames.Min(h => h.Size))));
+    }
+
+    private string? GetLogo(Game game) => MediaFileService.GetLogos(game.Id).FirstOrDefault();
+    private string? GetBackground(Game game) => MediaFileService.GetBackgrounds(game.Id).FirstOrDefault();
+    private string? GetCover(Game game) => MediaFileService.GetCovers(game.Id, 1, 1).FirstOrDefault();
+}

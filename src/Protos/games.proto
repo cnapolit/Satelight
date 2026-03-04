@@ -1,0 +1,223 @@
+syntax = "proto3";
+
+package games;
+
+service Games {
+    rpc GetGame   (GetGameRequest)     returns (GetGameReply);
+    rpc Get       (GamesGetRequest)    returns (GamesGetReply);
+    rpc StreamGame (GamesStreamRequest)    returns (stream Game);
+    rpc GetIds    (GamesGetIdsRequest) returns (GamesGetIdsReply);
+    rpc Update    (GamesUpdateRequest) returns (GamesUpdateReply);
+    rpc Install   (InstallRequest)     returns (InstallReply);
+    rpc Uninstall (UninstallRequest)   returns (UninstallReply);
+    rpc Remove    (RemoveRequest)      returns (RemoveReply);
+    rpc Repair    (RepairRequest)      returns (RepairReply);
+    rpc Start     (StartRequest)       returns (StartReply);
+    rpc Stop      (StopRequest)        returns (StopReply);
+    rpc GetOp     (GetOpRequest)       returns (GetOpReply);
+    rpc GetOps    (GetOpsRequest)      returns (GetOpsReply);
+}
+
+message GetGameRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message GetGameReply {
+    Game Game = 1;
+}
+
+message GamesGetIdsRequest {
+    int32 page = 1;
+}
+message GamesGetIdsReply {
+    repeated bytes Ids = 1;
+}
+
+message GetOpsRequest {
+}
+message GetOpsReply {
+    repeated Op Ops = 1;
+}
+
+message GetOpRequest { 
+    bytes Id = 1;
+}
+message GetOpReply { 
+    OpInfo Info = 1;
+}
+enum OpState {
+    Unknown = 0;
+    Queued = 1;
+    Paused = 2;
+    Running = 3;
+    Finished = 4;
+    Failed = 5;
+}
+enum RequestType {
+    None          =  0;
+    Init          =  1;
+    GetGames      =  2;
+    StreamGames   =  3;
+    GetCache      =  4;
+    GetFilters    =  5;
+    SetFilter     =  6;
+    GetTags       =  7;
+    GetPlatforms  =  8;
+    GetGenres     =  9;
+    GetSources    = 10;
+    GetGameIds    = 11;
+    GetOp         = 12;
+    GetOps        = 13;
+    StartGame     = 14;
+    MonitorGame   = 15;
+    StopGame      = 16;
+    InstallGame   = 17;
+    UninstallGame = 18;
+    UpdateGame    = 19;
+    RemoveGame    = 20;
+    RepairGame    = 21;
+    MoveGame      = 22;
+}
+message OpInfo {
+    OpState State = 1;
+    int32 Progress = 2;
+    string Host = 3;
+    RequestType Type = 4;
+    bytes TargetId = 5;
+}
+message Op {
+    bytes Id = 1;
+    OpInfo Info = 2;
+}
+
+message GamesUpdateRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message GamesUpdateReply {
+    Op Op = 1;
+}
+
+message InstallRequest {
+    GameIdentifier GameIdentifier = 1;
+    string Location = 2;
+}
+message InstallReply {
+    Op Op = 1;
+}
+
+message UninstallRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message UninstallReply {
+    Op Op = 1;
+}
+
+enum GameAction {
+    Start = 0;
+    Stop = 1;
+    Install = 2;
+    Uninstall = 3;
+    Remove = 4;
+    Update = 5;
+    Repair = 6;
+}
+
+message RemoveRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message RemoveReply {
+    Op Op = 1;
+}
+
+message RepairRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message RepairReply {
+    Op Op = 1;
+}
+
+message StartRequest {
+    GameIdentifier GameIdentifier = 1;
+}
+message StartReply {
+    Op Op = 1;
+}
+
+message StopRequest {
+    bytes GameId = 1;
+}
+message StopReply {
+    Op Op = 1;
+}
+
+message GamesGetRequest {
+    int32 page = 1;
+    string After = 2;
+    optional bytes filter = 3;
+    optional int32 Count = 4;
+}
+message GamesGetReply {
+    int32 Page = 1;
+    repeated Game Games = 2;
+}
+
+message GamesStreamRequest {
+    optional bytes filter = 1;
+    optional bytes Source = 2;
+    optional bytes Library = 3;
+}
+
+message GameIdentifier {
+    bytes Id = 1;
+    bytes DeviceId = 2;
+    bytes DeviceGameId = 3;
+    bytes PluginId = 4;
+    string PluginGameId = 5;
+}
+
+message Game {
+    bytes Id = 1;
+    bool Favorite = 2;
+    optional int64 ReleaseDate = 3;
+    optional int64 DateAdded = 4;
+    optional int64 LastPlayed = 5;
+    optional int64 TimePlayed = 6;
+    // could simplify to dictionary of scores
+    optional int32 UserScore = 7;
+    optional int32 CriticScore = 8;
+    optional int32 CommunityScore = 9;
+    bytes CompletionStatus = 10;
+    string Name = 11;
+    string Publisher = 12;
+    string Description = 13;
+    string Notes = 14;
+    repeated string Developers = 15;
+    repeated bytes Tags = 16;
+    repeated bytes Features = 17;
+    repeated bytes Genres = 18;
+    repeated DeviceState DeviceStates = 19;
+    string Cover = 20;
+    string Background = 21;
+    string SortingName = 22;
+    int64 PlayCount = 23;
+    repeated string Series = 24;
+    string Icon = 25;
+    repeated bytes Categories = 26;
+    repeated bytes Libraries = 27;
+}
+
+message DeviceState {
+    bytes Device = 1;
+    repeated GameInstance Instances = 2;
+}
+
+message GameInstance {
+    bytes Id = 1;
+    bool Installed = 2;
+    repeated string PlayActions = 3;
+    bytes Source = 4;
+    int64 Size = 5;
+    bool Playing = 6;
+    repeated bytes Platforms = 7;
+    bytes PluginId = 8;
+    string PluginGameId = 9;
+}

@@ -1,0 +1,38 @@
+@using Server.Services
+@inject IDatabaseClient DatabaseClient
+
+<div>
+  <div @onclick="PairHostAsync">Pair Host</div>
+</div>
+<script>
+  function pingBackend(ip, port) {
+    return new Promise((resolve, reject) => {
+      webOS.service.request("luna://org.mariotaku.gamepadmapper/pair", {
+        parameters: { ip, port },
+        onSuccess: resolve,
+        onFailure: reject
+      });
+    });
+  }
+    function displayPin(response) {
+      if (response.pin) {
+        displayPin(response.pin);
+      } else {
+        console.error("No PIN received:", response);
+      }
+    }
+  }
+  pingBackend()
+    .then(ListenForPin)
+    .catch(error => {
+      console.error("Error pinging backend:", error);
+    });
+</script>
+
+@code{
+    private async Task PairHostAsync()
+    {
+      var host = await DatabaseClient.GetHostAsync();
+    }
+
+}

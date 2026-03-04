@@ -1,0 +1,271 @@
+syntax = "proto3";
+
+import "core.proto";
+
+package host;
+
+option csharp_namespace = "Satelight.Protos.Host";
+
+service Host {
+	rpc GetInfo    (GetInfoRequest) returns      (GetInfoReply);
+    rpc Sleep       (SleepHostBody) returns    (SleepHostReply);
+    rpc PowerOff (PowerOffHostBody) returns (PowerOffHostReply);
+    rpc Restart   (RestartHostBody) returns  (RestartHostReply);
+    rpc Update     (UpdateHostBody) returns   (UpdateHostReply);
+}
+
+message GetInfoRequest {}
+message GetInfoReply {
+	string DnsName                  = 1;
+	string MacAddress               = 2;
+	string Version                  = 3;
+	Architecture Architecture       = 4;
+	OperatingSystem OperatingSystem = 5;
+    repeated string Libraries       = 6;
+}
+
+enum OperatingSystem {
+    UnknownOperatingSystem = 0;
+    Windows                = 1;
+    Linux                  = 2;
+    MacOS                  = 3;
+	Android                = 4;
+    CustomOperatingSystem  = 5;
+}
+
+enum Architecture {
+    UnknownArchitecture = 0;
+    x86                 = 1;
+    x64                 = 2;
+    ARM                 = 3;
+    ARM64               = 4;
+    CustomArchitecture  = 5;
+}
+
+message SleepHostBody {
+}
+message SleepHostReply {
+}
+
+message PowerOffHostBody {
+    bool Force = 1;
+}
+message PowerOffHostReply {
+}
+
+message RestartHostBody {
+}
+message RestartHostReply {
+}
+
+message PowerOnHostBody {
+    bytes Id = 1;
+}
+message PowerOnHostReply {
+}
+
+message UpdateHostBody {
+}
+message UpdateHostReply {
+    core.Op Op = 1;
+}
+
+service Media {
+    rpc UpdateCover               (UpdateCoverBody) returns        (UpdateCoverReply);
+    rpc UpdateBackground     (UpdateBackgroundBody) returns   (UpdateBackgroundReply);
+    rpc UpdateLogo                 (UpdateLogoBody) returns         (UpdateLogoReply);
+    rpc UpdateIcon                 (UpdateIconBody) returns         (UpdateIconReply);
+    rpc UpdateMicroTrailer (UpdateMicroTrailerBody) returns (UpdateMicroTrailerReply);
+    rpc UpdateTrailer           (UpdateTrailerBody) returns      (UpdateTrailerReply);
+}
+
+message UpdateFileInfo {
+    bytes  Game     = 1;
+    string fileName = 2;
+    string NewPath  = 3;
+}
+
+message UpdateCoverBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateCoverReply {
+    core.Result Result = 1;
+}
+
+message UpdateBackgroundBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateBackgroundReply {
+    core.Result Result = 1;
+}
+
+message UpdateLogoBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateLogoReply {
+    core.Result Result = 1;
+}
+
+message UpdateIconBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateIconReply {
+    core.Result Result = 1;
+}
+
+message UpdateMicroTrailerBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateMicroTrailerReply {
+    core.Result Result = 1;
+}
+
+message UpdateTrailerBody {
+    UpdateFileInfo UpdateFileInfo = 1;
+}
+message UpdateTrailerReply {
+    core.Result Result = 1;
+}
+
+service Games {
+    rpc Get             (GetGameBody) returns       (GetGameReply);
+    rpc Count        (CountGamesBody) returns    (CountGamesReply);
+    rpc Stream      (StreamGamesBody) returns        (stream Game);
+    rpc Update       (UpdateGameBody) returns    (UpdateGameReply);
+    rpc Install     (InstallGameBody) returns   (InstallGameReply);
+    rpc Uninstall (UninstallGameBody) returns (UninstallGameReply);
+    rpc Remove       (RemoveGameBody) returns    (RemoveGameReply);
+    rpc Repair       (RepairGameBody) returns    (RepairGameReply);
+    rpc Start         (StartGameBody) returns     (StartGameReply);
+    rpc Stop           (StopGameBody) returns      (StopGameReply);
+    rpc Move           (MoveGameBody) returns      (MoveGameReply);
+}
+
+message GetGameBody {
+    bytes GameId = 1;
+    string Library = 2;
+    string LibraryGameId = 3;
+}
+message GetGameReply {
+    Game Game = 1;
+}
+
+message CountGamesBody {
+    optional bytes filter  = 1;
+    optional bytes Source  = 2;
+    optional bytes Library = 3;
+}
+message CountGamesReply {
+    int32 Count = 1;
+}
+
+message StreamGamesBody {
+    optional bytes filter  = 1;
+    optional bytes Source  = 2;
+    optional bytes Library = 3;
+}
+
+message UpdateGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message UpdateGameReply {
+    core.Op Op = 1;
+}
+
+message InstallGameBody {
+    GameIdentifier GameIdentifier = 1;
+    string Location = 2;
+}
+message InstallGameReply {
+    core.Op Op = 1;
+}
+
+message UninstallGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message UninstallGameReply {
+    core.Op Op = 1;
+}
+
+message RemoveGameBody {
+    bytes GameId = 1;
+}
+message RemoveGameReply {
+    core.Result Result = 1;
+}
+
+message RepairGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message RepairGameReply {
+    core.Op Op = 1;
+}
+
+message StartGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message StartGameReply {
+    core.Op Op = 1;
+}
+
+message StopGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message StopGameReply {
+    core.Op Op = 1;
+}
+
+message MoveGameBody {
+    GameIdentifier GameIdentifier = 1;
+}
+message MoveGameReply {
+    core.Op Op = 1;
+}
+
+message GameIdentifier {
+    bytes AccountId = 1;
+    bytes LibraryId = 2;
+    bytes        Id = 4;
+}
+
+message Game {
+             bytes    Id          =  1;
+             string   Name        =  4;
+             string   Description =  5;
+    repeated bytes    Genres      =  6;
+    repeated HostGame HostGames   =  7;
+             string   SortingName =  8;
+    repeated string   Series      =  9;
+}
+
+message UserGameInfo {
+             bytes UserId           =  1;
+             bytes GameId           =  2;
+             bool  Favorite         =  3;
+    optional int64 LastPlayed       =  4;
+    optional int64 TimePlayed       =  5;
+    optional int32 Score            =  6;
+             bytes CompletionStatus =  7;
+    optional string Notes           =  8;
+             int64 PlayCount        =  9;
+    repeated bytes Categories       = 10;
+}
+
+message HostGame {
+             bytes        Id           =  1;
+             bytes        Library      =  2;
+             string       LibraryGameId = 3;
+             bool         Installed    =  4;
+             bool         Playing      =  5;
+             string       Name         =  6;
+             string       Description  =  7;
+    optional int64        ReleaseDate  =  8;
+    repeated string       PlayActions  =  9;
+    optional int64        Size         = 10;
+    repeated bytes        Platforms    = 11;
+    repeated bytes        Features     = 12;
+    repeated bytes        Publishers   = 13;
+    repeated bytes        Developers   = 14;
+    repeated bytes        Tags         = 15;
+    repeated UserGameInfo UserGameInfo = 16;
+}

@@ -1,0 +1,11 @@
+bin/
+obj/
+build-out/
+packages/
+dist/
+*.vs
+*.vscode
+*.user
+.DS_Store
+/src/server/wwwroot/media
+webOSTV*.js

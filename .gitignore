@@ -9,3 +9,7 @@ dist/
 .DS_Store
 /src/server/wwwroot/media
 webOSTV*.js
+/src/Common/Utility.Core/Classes
+/src/Common/Utility.Core/Extensions
+/src/Common/Utility.Core/Functions
+/src/Common/Utility.Core/Models

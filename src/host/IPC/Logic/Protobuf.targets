@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="GenerateProtobuf" BeforeTargets="BeforeCompile">
+    <Exec Command="dotnet tool restore" />
+    <Exec Command="protogen --proto_path=.\Protos --csharp_out=$(ProjectDir)build-out\ *.proto" WorkingDirectory="$(SolutionDir)"/>
+  </Target>
+</Project>

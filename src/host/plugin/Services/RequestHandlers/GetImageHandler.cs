@@ -12,13 +12,11 @@ using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-internal abstract class GetImageHandler<TReq, TResp>(IPlayniteAPI playniteApi) : ImageHandler, IRequestHandler<TReq, TResp>
+internal abstract class GetImageHandler<TReq, TResp>(IPlayniteAPI playniteApi) : ImageHandler<TReq>
     where TReq  : GameRequest
     where TResp : ListFilesResponse, new()
 {
     private static readonly string LibraryFilesPath = Path.Combine("Library", "Files");
-
-    public abstract ValueTask<TResp> HandleAsync(TReq request, CancellationToken token);
 
     protected async ValueTask<TResp> GetImagesAsync(TReq request, bool isCover, CancellationToken token)
     {

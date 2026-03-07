@@ -13,15 +13,14 @@ using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public abstract class UpdateImageHandler<TReq, TRep>(IPlayniteAPI playniteApi)
-    : ImageHandler, IRequestHandler<TReq, TRep>
+public abstract class UpdateImageHandler<TReq, TRep>(IPlayniteAPI playniteApi) : ImageHandler<TReq>
+    where TReq : SatelightRequest
+    where TRep : SuccessResponse, new()
 {
-    public abstract ValueTask<TRep> HandleAsync(TReq request, CancellationToken token);
-
-    protected async ValueTask<TResp> UpdateGameImagesAsync<TResp>(
-        UpdateGameFileRequest request, bool isCover, CancellationToken token) where TResp : SuccessResponse, new()
+    protected async ValueTask<TRep> UpdateGameImagesAsync(
+        UpdateGameFileRequest request, bool isCover, CancellationToken token) 
     {
-        TResp resp = new();
+        TRep resp = new();
         var game = playniteApi.Database.Games.Get(request.Id);
         if (game is null)
         {

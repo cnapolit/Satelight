@@ -1,8 +1,9 @@
-﻿using System.IO;
+﻿using Comms.Common.Interface.Models;
+using System.IO;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public abstract class ImageHandler
+public abstract class ImageHandler<TReq> : RequestHandler<TReq> where TReq : SatelightRequest
 {
 
     protected static readonly string BackgroundChangerJsonPath;

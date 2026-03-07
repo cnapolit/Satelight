@@ -5,7 +5,7 @@ using Game = Playnite.SDK.Models.Game;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class InstallGameHandler(IPlayniteAPI playniteApi, ActionTracker actionTracker, GetGamesService getGamesService)
+public class InstallGameHandler(IPlayniteAPI playniteApi, IActionTracker actionTracker, IGetGamesService getGamesService)
     : GameActionRequestHandler<InstallGameRequest, InstallGameResponse>(actionTracker, getGamesService)
 {
     protected override RequestType RequestType => RequestType.InstallGame;

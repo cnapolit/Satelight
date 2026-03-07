@@ -3,10 +3,11 @@ using System.Threading.Tasks;
 using Common.Utility.Extensions;
 using Comms.Common.Interface;
 using Comms.Common.Interface.Models;
+using HostPlugin.Services;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class GamesStreamHandler(GetGamesService getGamesService)
+public class GamesStreamHandler(IGetGamesService getGamesService) : IGamesStreamHandler
 {
     public Task HandleRequestAsync(StreamGamesRequest request, ISatelightConnection connection, CancellationToken token)
         => getGamesService

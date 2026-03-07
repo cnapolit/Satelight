@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class CountGamesHandler(IPlayniteAPI playniteApi) : IRequestHandler<CountGamesRequest, CountGamesResponse>
+public class CountGamesHandler(IPlayniteAPI playniteApi) : RequestHandler<CountGamesRequest>
 {
-    public async ValueTask<CountGamesResponse> HandleAsync(CountGamesRequest request, CancellationToken token)
+    public override async ValueTask<SatelightResponse> HandleAsync(CountGamesRequest request, CancellationToken token)
     {
-        return new() { Count = playniteApi.Database.GetFilteredGames(new() { Hidden = false }).Count() };
+        return new CountGamesResponse { Count = playniteApi.Database.GetFilteredGames(new() { Hidden = false }).Count() };
     }
 }

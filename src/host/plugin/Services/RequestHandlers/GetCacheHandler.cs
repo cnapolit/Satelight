@@ -1,10 +1,12 @@
 ﻿using Comms.Common.Interface.Models;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class GetCacheHandler
+public class GetCacheHandler(IDatabaseService databaseService) : RequestHandler<GetCacheRequest>
 {
-    public GetCacheResponse Handle(DatabaseService databaseService) => new()
+    public override async ValueTask<SatelightResponse> HandleAsync(GetCacheRequest getCacheRequest, CancellationToken _) => new GetCacheResponse
     {
         Filters = databaseService.GetFilters(),
         Genres = databaseService.GetGenres(),

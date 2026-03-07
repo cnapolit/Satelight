@@ -1,10 +1,12 @@
 ﻿using Comms.Common.Interface.Models;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class GetFiltersHandler
+public class GetFiltersHandler(IDatabaseService databaseService) : RequestHandler<GetFiltersRequest>
 {
-    public GetFiltersResponse Handle(DatabaseService databaseService) => new()
+    public override async ValueTask<SatelightResponse> HandleAsync(GetFiltersRequest getFiltersRequest, CancellationToken _) => new GetFiltersResponse
     {
         Filters = databaseService.GetFilters()
     };

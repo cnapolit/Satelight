@@ -1,9 +1,17 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Comms.Common.Interface.Models;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class GetLabelsRequestHandler<TResp>(Func<Label[]> getLabels) where TResp : GetLabelsResponse, new()
+public abstract class GetLabelsRequestHandler<TReq, TRep> : RequestHandler<TReq>
+    where TReq : SatelightRequest
+    where TRep : GetLabelsResponse, new()
 {
-    public TResp Handle() => new() { Items = getLabels() };
+    public DatabaseService DatabaseService { protected get; init; }
+    public override async ValueTask<SatelightResponse> HandleAsync(TReq request, CancellationToken token)
+        => new TRep { Items = GetLabels() };
+
+    protected abstract Label[] GetLabels();
 }

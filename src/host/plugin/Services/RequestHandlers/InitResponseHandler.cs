@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class InitResponseHandler(IPlayniteAPI playniteApi) : IRequestHandler<InitializeRequest, InitializeResponse>
+public class InitResponseHandler(IPlayniteAPI playniteApi) : RequestHandler<InitializeRequest>
 {
-    public async ValueTask<InitializeResponse> HandleAsync(InitializeRequest request, CancellationToken token)
-        => new() { Path = playniteApi.Paths.ConfigurationPath, Port = 5156 };
+    public override async ValueTask<SatelightResponse> HandleAsync(InitializeRequest request, CancellationToken token)
+        => new InitializeResponse { Path = playniteApi.Paths.ConfigurationPath, Port = 5156 };
 }

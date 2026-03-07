@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-internal class GetGameRequestHandler(GetGamesService getGamesService)
-    : IRequestHandler<GetGameRequest, GetGameResponse>
+internal class GetGameRequestHandler(IGetGamesService getGamesService) : RequestHandler<GetGameRequest>
 {
-    public async ValueTask<GetGameResponse> HandleAsync(GetGameRequest getGameRequest, CancellationToken _)
-        => new() { Game = getGamesService.GetGame(getGameRequest) };
+    public override async ValueTask<SatelightResponse> HandleAsync(GetGameRequest getGameRequest, CancellationToken _)
+        => new GetGameResponse { Game = getGamesService.GetGame(getGameRequest) };
 }

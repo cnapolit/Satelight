@@ -1,5 +1,6 @@
 ﻿using Comms.Common.Interface.Models;
 using Comms.Host.Interface.Models;
+using HostPlugin.Services;
 using Playnite.SDK;
 using System;
 using System.Diagnostics;
@@ -9,10 +10,9 @@ using Comms.Common.Interface;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class StopGameRequestHandler(ActionTracker actionTracker, ISatelightConnection connection)
+public class StopGameRequestHandler(IActionTracker actionTracker, IGetGamesService getGamesService) : IStopGameRequestHandler
 {
-    public async Task HandleRequestAsync(
-        StopGameRequest request, GetGamesService getGamesService, CancellationToken token)
+    public async Task HandleRequestAsync(StopGameRequest request, ISatelightConnection connection, CancellationToken token)
     {
         try
         {
@@ -22,7 +22,7 @@ public class StopGameRequestHandler(ActionTracker actionTracker, ISatelightConne
             if (!game.IsRunning)
             {
                 op.State = OpState.Finished;
-                await SendStopResponseAsync(op, token);
+                await SendStopResponseAsync(connection, op, token);
                 return;
             }
 
@@ -30,12 +30,12 @@ public class StopGameRequestHandler(ActionTracker actionTracker, ISatelightConne
             if (process is null)
             {
                 op.State = OpState.Failed;
-                await SendStopResponseAsync(op, token);
+                await SendStopResponseAsync(connection, op, token);
                 return;
             }
 
             op.State = OpState.Running;
-            await SendStopResponseAsync(op, token);
+            await SendStopResponseAsync(connection, op, token);
 
             for (var i = 0; !process.HasExited && i < 10; i++)
             {
@@ -60,6 +60,6 @@ public class StopGameRequestHandler(ActionTracker actionTracker, ISatelightConne
         }
     }
 
-    private Task SendStopResponseAsync(Op op, CancellationToken token)
+    private static Task SendStopResponseAsync(ISatelightConnection connection, Op op, CancellationToken token)
         => connection.SendResponseAsync(new StopGameResponse { Op = op }, token);
 }

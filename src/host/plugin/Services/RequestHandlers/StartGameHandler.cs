@@ -5,7 +5,7 @@ using Game = Playnite.SDK.Models.Game;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class StartGameHandler(IPlayniteAPI playniteApi, ActionTracker actionTracker, GetGamesService getGamesService)
+public class StartGameHandler(IPlayniteAPI playniteApi, IActionTracker actionTracker, IGetGamesService getGamesService)
     : GameActionRequestHandler<StartGameRequest, StartGameResponse>(actionTracker, getGamesService)
 {
     protected override RequestType RequestType => RequestType.StartGame;

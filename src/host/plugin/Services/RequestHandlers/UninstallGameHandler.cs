@@ -5,7 +5,7 @@ using Game = Playnite.SDK.Models.Game;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class UninstallGameHandler(IPlayniteAPI playniteApi, ActionTracker actionTracker, GetGamesService getGamesService)
+public class UninstallGameHandler(IPlayniteAPI playniteApi, IActionTracker actionTracker, IGetGamesService getGamesService)
     : GameActionRequestHandler<UninstallGameRequest, UninstallGameResponse>(actionTracker, getGamesService)
 {
     protected override RequestType RequestType => RequestType.InstallGame;

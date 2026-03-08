@@ -5,7 +5,7 @@ using Comms.Common.Interface.Models;
 
 namespace HostPlugin.Services;
 
-public class ActionTracker
+public class ActionTracker : IActionTracker
 {
     private readonly object _pollLock = new();
 

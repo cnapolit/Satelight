@@ -9,7 +9,7 @@ using HostPlugin.Services.RequestHandlers;
 
 namespace HostPlugin.Services;
 
-public class Server(IHostListener listener, RequestHandlerFactory requestHandlerFactory) : IDisposable
+public class Server(IHostListener listener, IRequestHandlerDirectory requestHandlerFactory) : IServer
 {
     private readonly object _gate = new();
     private readonly HashSet<Task> _inflight = [];

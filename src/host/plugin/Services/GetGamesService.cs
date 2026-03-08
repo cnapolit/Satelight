@@ -10,7 +10,7 @@ using Game = Comms.Common.Interface.Models.Game;
 
 namespace HostPlugin.Services;
 
-public class GetGamesService(IPlayniteAPI playniteApi)
+public class GetGamesService(IPlayniteAPI playniteApi) : IGetGamesService
 {
 
     private const           string   DuplicateHiderTagPrefix = "[DH]";

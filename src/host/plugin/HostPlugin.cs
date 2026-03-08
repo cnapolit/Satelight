@@ -6,12 +6,13 @@ using System.Threading;
 using System.Windows.Controls;
 using Comms.Common.Interface.Models;
 using Comms.Host.Factory;
+using Comms.Host.Interface;
 using HostPlugin.Common;
 using HostPlugin.Models;
 using HostPlugin.Services;
-using HostPlugin.Services.RequestHandlers;
 using HostPlugin.Views;
 using HostPlugin.Views.Models;
+using Autofac;
 
 namespace HostPlugin;
 
@@ -20,23 +21,41 @@ public class HostPlugin : GenericPlugin
     public override Guid Id => Constants.PluginId;
 
     private readonly Settings                _settings;
-    private readonly Server                  _server;
-    private readonly ActionTracker           _actionTracker;
+    private          IServer                 _server;
+    private          IActionTracker          _actionTracker;
+    private          IContainer              _container;
     private readonly CancellationTokenSource _tokenSource = new();
 
     public HostPlugin(IPlayniteAPI playniteApi) : base(playniteApi)
     {
-        Properties     = new() { HasSettings = true };
-        _settings      = LoadPluginSettings<Settings>() ?? new();
-        _actionTracker = new();
-        RequestHandlerFactory requestHandlerFactory = new(playniteApi, _actionTracker, new(playniteApi), new(playniteApi));
-        _server = new(HostFactory.CreateListener(), requestHandlerFactory);
+        Properties = new() { HasSettings = true };
+        _settings  = LoadPluginSettings<Settings>() ?? new();
+        using (new AssemblyResolver())
+            Build(playniteApi);
+    }
+
+    private void Build(IPlayniteAPI playniteApi)
+    {
+        var builder = new ContainerBuilder();
+
+        // External instances / factories that can't be assembly-scanned
+        builder.RegisterInstance(playniteApi).As<IPlayniteAPI>();
+        builder.Register(_ => HostFactory.CreateListener()).As<IHostListener>().SingleInstance();
+
+        // Auto-register all service types by their implemented interfaces
+        builder.RegisterAssemblyTypes(typeof(HostPlugin).Assembly)
+            .AsImplementedInterfaces()
+            .SingleInstance();
+
+        _container = builder.Build();
+        _actionTracker = _container.Resolve<IActionTracker>();
+        _server = _container.Resolve<IServer>();
     }
 
     public override void Dispose()
     {
         _tokenSource.Cancel();
-        _server.Dispose();
+        _container.Dispose();
     }
 
     public override void OnApplicationStarted(OnApplicationStartedEventArgs args) 

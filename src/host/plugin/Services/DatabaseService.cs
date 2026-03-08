@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class DatabaseService(IPlayniteAPI playniteApi)
+public class DatabaseService(IPlayniteAPI playniteApi) : IDatabaseService
 {
     public Filter[] GetFilters() 
         => playniteApi.Database.FilterPresets.Select(

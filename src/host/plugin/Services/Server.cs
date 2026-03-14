@@ -78,7 +78,7 @@ public class Server(IHostListener listener, IRequestHandlerDirectory requestHand
         {
             try
             {
-                await connection.DisposeAsync();
+                connection.Dispose();
             }
             catch (Exception e)
             {

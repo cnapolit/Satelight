@@ -44,6 +44,6 @@
         var visibilityClass = isVisible ? "" : "hide";
         return string.IsNullOrWhiteSpace(game.Logo)
             ? @<div class="logo text @divClass @visibilityClass">@(game.Name)</div>
-            : @<img class="logo @divClass @visibilityClass" src="@game.Logo" alt="@game.Name"/>;
+            : @<img class="logo image @divClass @visibilityClass" src="@game.Logo" alt="@game.Name"/>;
     }
 }

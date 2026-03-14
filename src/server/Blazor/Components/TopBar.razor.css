@@ -1,4 +1,4 @@
-#TopBar {
+#topBar {
     position: fixed;
     height: 6%;
     width: 100%;
@@ -6,6 +6,10 @@
     flex-direction: row-reverse;
     padding: 1rem 1rem 0 0;
     filter: drop-shadow(2px 4px 6px black);
+    transition: opacity .125s ease-in-out;
+}
+#topBar.hide {
+    opacity: 0;
 }
 
 #menu-button {

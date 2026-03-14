@@ -1,12 +1,10 @@
+@using Server.Models.Database
 @using Server.Models.Events
 @using Server.Models.UserInterface
 @using Server.Services
-@using Server.Services.Host
-@implements IDisposable
 @implements IAsyncDisposable
 @inject IDatabaseClient DatabaseClient
 @inject BrowseState BrowseState
-@inject HostClient HostClient
 @inject IJSRuntime JS
 
 <div id="game-details" class="hide">
@@ -44,17 +42,13 @@
     protected override void OnInitialized()
     {
         BrowseState.GameInfoChanged += StateHasChanged;
-        HostClient.GameUpdated += OnGameOperationUpdatedAsync;
-    }
-
-    public void Dispose()
-    {
-        BrowseState.GameInfoChanged -= StateHasChanged;
-        HostClient.GameUpdated -= OnGameOperationUpdatedAsync;
+        DatabaseClient.GameUpdated += OnGameOperationUpdatedAsync;
     }
 
     public async ValueTask DisposeAsync()
     {
+        BrowseState.GameInfoChanged -= StateHasChanged;
+        DatabaseClient.GameUpdated -= OnGameOperationUpdatedAsync;
         if (_jsModule is not null)
         {
             await _jsModule.DisposeAsync();
@@ -81,38 +75,45 @@
         {
             GameStatus.Running   => DatabaseClient.StopGameAsync   (BrowseState.GameInfo.Id),
             GameStatus.Installed => DatabaseClient.StartGameAsync  (BrowseState.GameInfo.Id),
-            _                => DatabaseClient.InstallGameAsync(BrowseState.GameInfo.Id)
+            _                    => DatabaseClient.InstallGameAsync(BrowseState.GameInfo.Id)
         };
 
         await operation;
     }
 
-    private async Task OnGameOperationUpdatedAsync(GameUpdatedEventArgs args)
+    private async Task OnGameOperationUpdatedAsync(GameDisplayUpdatedEventArgs args)
     {
-        if (BrowseState.SelectedGame is null || BrowseState.GameInfo is null)
+        if (BrowseState.SelectedGame is null)
         {
             return;
         }
 
-        if (!Guid.TryParse(BrowseState.SelectedGame.Id, out var selectedGameId))
+        if (BrowseState.PlayingGameId == args.GameInfo.Id
+         && args.GameInfo.Versions.All(v => v.Status != GameStatus.Running))
+        {
+            BrowseState.PlayingGameId = null;
+            await HideHdmiVideoAsync();
+        }
+        
+        if (args.GameInfo.Id != BrowseState.SelectedGame.Id)
         {
             return;
         }
 
-        if (args.GameId != selectedGameId)
+        if (args is { Type: OperationType.StartGame, State: OperationState.Finished })
         {
-            return;
+            BrowseState.PlayingGameId = args.GameInfo.Id;
+            await RevealHdmiVideoAsync();
         }
 
-        var gameId = BrowseState.SelectedGame.Id;
-        var updatedGameInfo = await DatabaseClient.GetGameInfoAsync(gameId);
         await InvokeAsync(() =>
         {
-            if (!Guid.TryParse(BrowseState.SelectedGame.Id, out selectedGameId) && args.GameId != selectedGameId)
+            if (args.GameInfo.Id != BrowseState.SelectedGame.Id)
             {
                 return;
             }
-            BrowseState.GameInfo = updatedGameInfo;
+
+            BrowseState.GameInfo = args.GameInfo;
         });
     }
 
@@ -125,7 +126,12 @@
 
     private async Task RevealHdmiVideoAsync()
     {
-        _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/GameDetails.js");
+        _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./Blazor/Components/GameDetails.razor.js");
         await _jsModule.InvokeVoidAsync("revealHdmiVideo");
+    }
+
+    private async Task HideHdmiVideoAsync()
+    {
+        await _jsModule!.InvokeVoidAsync("hideHdmiVideo");
     }
 }

@@ -1,5 +1,5 @@
 import {
-    filtersClass,
+    filtersId,
     focusedMenuClass,
     hideClass,
     selectedClass
@@ -19,7 +19,7 @@ export function getActiveElement() {
     }
 
     if (!focusedMenu || focusedMenu.childElementCount === 0) {
-        focusedMenu = document.querySelector("#" + filtersClass);
+        focusedMenu = document.querySelector("#" + filtersId);
         focusedMenu.classList.add(focusedMenuClass);
     }
 

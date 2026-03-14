@@ -1,42 +1,4 @@
-﻿@using Server.Models.UserInterface
-@rendermode InteractiveServer
-@implements IAsyncDisposable
-@inject BrowseState BrowseState
-@inject IJSRuntime JS
-
+﻿
 <div id="game-start-dialogue" class="hide">
-  <div tabindex="0" @onclick="CancelAsync">Starting...</div>
+  <div id="game-start-dialogue-text" tabindex="0">Starting...</div>
 </div>
-
-@code {
-
-  IJSObjectReference? _jsModule;
-
-  protected override void OnInitialized()
-  {
-  }
-
-  private async Task CallJsShowGameAsync()
-  {
-    _jsModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/GameStartDialogue.js");
-    await _jsModule.InvokeVoidAsync("showGameStartDialogue");
-  }
-
-  private async Task UpdateJsAsync(string state)
-  {
-    await _jsModule!.InvokeVoidAsync("showGame", state);
-  }
-
-  private Task CancelAsync() => Task.CompletedTask;
-  
-    public void Dispose()
-    {
-      _jsModule?.DisposeAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-      if (_jsModule != null) await _jsModule.DisposeAsync();
-    }
-
-}

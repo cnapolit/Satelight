@@ -1,6 +1,6 @@
 
 import { createMenuNavigations } from "./Menu.js";
-import { gamesListClass } from "./navigation/navigationConstants.js";
+import { gamesListId, selectedClass, focusedMenuClass, previousClass, hideClass } from "./navigation/navigationConstants.js";
 
 let previousGamepad = null;
 let keyboardInitialized = false;
@@ -10,12 +10,11 @@ export function init() {
       buttons:Array.from({length:18},() => ({ pressed:false, touched:false, value:0 }))
   };
   initKeyboardSupport();
-  const focusedMenu = document.getElementById(gamesListClass);
-  focusedMenu.classList.add("focused-menu");
+  const focusedMenu = document.getElementById(gamesListId);
+  focusedMenu.classList.add(focusedMenuClass);
   const game = focusedMenu.children[0];
   game.focus();
-  // game.classList.add("focused-item");
-  game.classList.add("selected-item");
+  game.classList.add(selectedClass);
   const deviceInfo = JSON.parse(webOSSystem.deviceInfo);
   const isSimulator = deviceInfo.modelName.toLowerCase().includes("simulator");
   const gamePadLoop = isSimulator ? mainSimulatorLoop : mainTvLoop;
@@ -300,11 +299,11 @@ function mapKeyboardEventToInput(evt) {
 function getFocusedMenu() {
   let focusedMenu = document.activeElement.parentElement;
   if (focusedMenu == null && gameState !== gameState_running) {
-    focusedMenu = document.getElementById(gamesListClass);
-    focusedMenu.classList.add("focused-menu");
+    focusedMenu = document.getElementById(gamesListId);
+    focusedMenu.classList.add(focusedMenuClass);
     let game = focusedMenu.children[0];
     game.focus();
-    game.classList.add("selected-game");
+    game.classList.add(selectedClass);
   }
   return focusedMenu;
 }
@@ -331,7 +330,7 @@ function handleInput(index) {
       case circle:  nav.back();      break;
       case options: nav.options();   break;
       case guide:
-        if (nav.Id === "overlay") {
+        if (nav.Id === overlayId) {
           nav.back();
         }
         else {
@@ -344,13 +343,13 @@ function handleInput(index) {
 
 function revealOverlay(focusedMenu) {
   if (focusedMenu) {
-    focusedMenu.classList.remove("focused-menu");
-    focusedMenu.classList.add("previous-menu");
+    focusedMenu.classList.remove(focusedMenuClass);
+    focusedMenu.classList.add(previousClass);
   }
 
-  const overlayMenu = document.getElementById("overlay");
-  overlayMenu.classList.add("focused-menu");
-  overlayMenu.classList.remove("hide");
+  const overlayMenu = document.getElementById(overlayId);
+  overlayMenu.classList.add(focusedMenuClass);
+  overlayMenu.classList.remove(hideClass);
   const menuItem = overlayMenu.children[0];
   menuItem.focus();
 

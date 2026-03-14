@@ -25,4 +25,5 @@ public class BrowseState
 
     public List<GameDisplayInfo> Games { get; set; } = [];
     public GameListState GameListState { get; set; }
+    public string? PlayingGameId { get; set; }
 }

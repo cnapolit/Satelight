@@ -47,9 +47,7 @@
     private RenderFragment CreateScrollGameDiv(GameDisplayInfo game) => CreateGameDiv(game, game.Cover);
     private RenderFragment   CreateGridGameDiv(GameDisplayInfo game) => CreateGameDiv(game, game.GridCover);
     private RenderFragment CreateGameDiv(GameDisplayInfo game, string? cover) =>
-        @<div class="game-item" tabindex="0" id="@game.Id"
-              @onclick="() => SelectGame(game)"
-              @oncontextmenu="ShowGameDetailsAsync">
+        @<div class="game-item" tabindex="0" id="@game.Id" @onclick="() => SelectGame(game)">
             <img src="@(cover ?? "/res/defaultCover.png")" alt="@game.Name" class="game-cover"/>
         </div>;
     private RenderFragment CreateGamePaddingDiv() =>

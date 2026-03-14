@@ -1,18 +1,23 @@
 import { MenuNavigation } from "./MenuNavigation.js";
 import {
-    filtersClass,
+    backgroundId,
+    gamesBackgroundId,
+    centeredClass,
+    filtersId,
     focusedMenuClass,
-    gameDetailsClass,
-    gamesListClass,
+    gameDetailsId,
+    gamesListId,
+    gameStartDialogueId,
     hideClass,
+    logoId,
     selectedClass,
-    topBarClass
+    topBarId
 } from "./navigationConstants.js";
 import { changeMenu, getActiveElement } from "./navigationUtils.js";
 
 export class GameDetailsMenuNavigation extends MenuNavigation {
     constructor() {
-        super(gameDetailsClass, null, null);
+        super(gameDetailsId, null, null);
     }
 
     moveUp() {
@@ -41,28 +46,31 @@ export class GameDetailsMenuNavigation extends MenuNavigation {
         if (!activeElement || activeElement.id !== "play-button" || activeElement.children[0].textContent !== "PLAY") {
             return;
         }
-        changeMenu("game-start-dialogue", true);
-        const logo = document.querySelector("#game-logo");
-        logo.classList.add("center");
-        const topBar = document.querySelector("#" + topBarClass);
-        topBar.classList.add("hide");
+        changeMenu(gameStartDialogueId, true);
+        const logo = document.querySelector("#" + logoId);
+        logo.classList.add(centeredClass);
+        const topBar = document.querySelector("#" + topBarId);
+        topBar.classList.add(hideClass);
     }
 
     back() {
-        const focusedItem = document.querySelector("#" + gameDetailsClass);
+        const focusedItem = document.querySelector("#" + gameDetailsId);
         focusedItem.classList.add(hideClass);
         focusedItem.classList.remove(focusedMenuClass);
 
-        const blurredBackground = document.querySelector("#blurred-background");
+        const blurredBackground = document.querySelector("#" + gamesBackgroundId);
         blurredBackground.classList.remove(hideClass);
 
-        const background = document.querySelector("#games-background");
-        background.classList.remove("game-details");
+        const background = document.querySelector("#" + backgroundId);
+        background.classList.remove(gameDetailsId);
 
-        const filters = document.querySelector("#" + filtersClass);
+        const filters = document.querySelector("#" + filtersId);
         filters.classList.remove(hideClass);
 
-        const gamesList = document.querySelector("#" + gamesListClass);
+        const topBar = document.querySelector("#" + topBarId);
+        topBar.classList.add(hideClass);
+
+        const gamesList = document.querySelector("#" + gamesListId);
         gamesList.classList.add(focusedMenuClass);
         const selectedItem = gamesList.querySelector("." + selectedClass);
         selectedItem.focus();

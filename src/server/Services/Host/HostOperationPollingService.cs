@@ -48,48 +48,31 @@ public class HostOperationPollingService(
     private async Task PollActiveHostsAsync(CancellationToken token)
     {
         await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(token);
-        var activeHostIds = await databaseContext
-            .Operations
-            .AsNoTracking()
-            .Where(o => o.State == OperationState.Queued
-                     || o.State == OperationState.Running
-                     || o.State == OperationState.Paused)
-            .Select(o => o.HostId)
-            .Distinct()
-            .ToListAsync(token);
-        if (activeHostIds.Count == 0)
-        {
-            return;
-        }
-
         var hosts = await databaseContext
             .Hosts
             .AsNoTracking()
-            .Where(h => activeHostIds.Contains(h.Id))
             .ToListAsync(token);
 
         foreach (var host in hosts)
         {
+            await hostClient.UpdatePlayingGamesAsync(host, token);
             await PollHostOperationsAsync(host, token);
         }
     }
 
     private async Task PollHostOperationsAsync(Models.Database.Host host, CancellationToken token)
     {
-        var channel = channelManager.GetChannel(host);
-        Ops.OpsClient opsClient = new(channel);
-        ListOpsReply reply;
         try
         {
-            reply = await opsClient.ListOpsAsync(new(), cancellationToken: token);
+            var channel = channelManager.GetChannel(host);
+            Ops.OpsClient opsClient = new(channel);
+            var reply = await opsClient.ListOpsAsync(new(), cancellationToken: token);
+            await UpsertHostOperationsAsync(host.Id, reply.Ops, token);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Could not retrieve operations for host '{HostId}' ({HostName}).", host.Id, host.HostName);
-            return;
         }
-
-        await UpsertHostOperationsAsync(host.Id, reply.Ops, token);
     }
 
     private async Task UpsertHostOperationsAsync(Guid hostId, IEnumerable<Op> hostOps, CancellationToken token)

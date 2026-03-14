@@ -1,4 +1,7 @@
 #game-start-dialogue {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     position: absolute;
     transition: opacity .75s ease-in-out;
     /* background-repeat: no-repeat; */
@@ -8,7 +11,10 @@
     backdrop-filter: blur(4px);
     z-index: -1;
 }
-
 #game-start-dialogue.hide {
     opacity: 0;
+}
+
+#game-start-dialogue-text {
+    color: white;
 }

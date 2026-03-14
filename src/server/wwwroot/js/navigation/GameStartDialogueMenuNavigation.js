@@ -1,10 +1,16 @@
 import { MenuNavigation } from "./MenuNavigation.js";
-import { gameDetailsClass, topBarClass } from "./navigationConstants.js";
+import { hideClass, backgroundId, logoId, gameDetailsId, topBarId, gameStartDialogueId, centeredClass } from "./navigationConstants.js";
 import { changeMenu } from "./navigationUtils.js";
+function revealElement(id) {
+    const element = document.querySelector("#" + id);
+    if (element) {
+      element.classList.remove(hideClass);
+    }
+}
 
 export class GameStartDialogueMenuNavigation extends MenuNavigation {
     constructor() {
-        super("game-start-dialogue", null, null);
+        super(gameStartDialogueId, null, null);
     }
 
     moveLeft() {}
@@ -15,10 +21,12 @@ export class GameStartDialogueMenuNavigation extends MenuNavigation {
     options() {}
 
     back() {
-        changeMenu(gameDetailsClass, true);
-        const logo = document.querySelector("#game-logo");
-        logo.classList.remove("center");
-        const topBar = document.querySelector("#" + topBarClass);
-        topBar.classList.remove("hide");
+        changeMenu(gameDetailsId, true);
+        revealElement(topBarId);
+        revealElement(gameStartDialogueId);
+        revealElement(backgroundId);
+        const logo = document.querySelector("#" + logoId);
+        logo.classList.remove(centeredClass);
+        logo.classList.remove(hideClass);
     }
 }

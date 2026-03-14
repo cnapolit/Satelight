@@ -1,9 +1,11 @@
 import { MenuNavigation } from "./MenuNavigation.js";
 import {
-    filtersClass,
+    backgroundId,
+    filtersId,
     focusedMenuClass,
-    gameDetailsClass,
-    gamesListClass,
+    gameDetailsId,
+    gamesBackgroundId,
+    gamesListId,
     hideClass,
     selectedClass
 } from "./navigationConstants.js";
@@ -15,7 +17,7 @@ export class GameMenuNavigation extends MenuNavigation {
     #selectedItem = null;
     #isActive = false;
     constructor() {
-        super(gamesListClass, filtersClass, null);
+        super(gamesListId, filtersId, null);
     }
 
     moveLeft() { this.moveItem(false); }
@@ -54,19 +56,19 @@ export class GameMenuNavigation extends MenuNavigation {
         }
         focusedItem.click();
 
-        const blurredBackground = document.querySelector("#blurred-background");
+        const blurredBackground = document.querySelector("#" + gamesBackgroundId);
         blurredBackground.classList.add(hideClass);
 
-        const games = document.querySelector("#" + gamesListClass);
+        const games = document.querySelector("#" + gamesListId);
         games.classList.remove(focusedMenuClass);
 
-        const filters = document.querySelector("#" + filtersClass);
+        const filters = document.querySelector("#" + filtersId);
         filters.classList.add(hideClass);
 
-        const background = document.querySelector("#games-background");
+        const background = document.querySelector("#" + backgroundId);
         background.classList.add("game-details");
 
-        const gameDetails = document.querySelector("#" + gameDetailsClass);
+        const gameDetails = document.querySelector("#" + gameDetailsId);
         gameDetails.classList.add(focusedMenuClass);
         gameDetails.classList.remove(hideClass);
         focusedItem.click();

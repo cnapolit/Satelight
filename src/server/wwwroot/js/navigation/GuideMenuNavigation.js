@@ -1,13 +1,10 @@
 import { MenuNavigation } from "./MenuNavigation.js";
 import {
-    filtersClass,
     focusedMenuClass,
-    gameDetailsClass,
-    gamesListClass,
     hideClass,
     selectedClass
 } from "./navigationConstants.js";
-import { getActiveElement } from "./navigationUtils.js";
+
 export class GuideMenuNavigation extends MenuNavigation {
     constructor() {
         super("overlay", null, null);

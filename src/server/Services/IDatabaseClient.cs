@@ -1,3 +1,4 @@
+using Server.Models.Events;
 using Server.Models.UserInterface;
 
 namespace Server.Services;
@@ -11,4 +12,5 @@ public interface IDatabaseClient
     Task InstallGameAsync(string id, CancellationToken cancellationToken = default);
     Task UninstallGameAsync(string id, CancellationToken cancellationToken = default);
     Task<HostInfo> GetHostAsync(CancellationToken cancellationToken = default);
+    event Func<GameDisplayUpdatedEventArgs, Task> GameUpdated;
 }

@@ -1,14 +1,14 @@
 import { MenuNavigation } from "./MenuNavigation.js";
 import {
     focusedMenuClass,
-    GameOptionsClass,
+    gameOptionsId,
     previousClass,
     selectedClass
 } from "./navigationConstants.js";
 
 export class GameOptionsMenuNavigation extends MenuNavigation {
     constructor() {
-        super(GameOptionsClass, null, null);
+        super(gameOptionsId, null, null);
     }
 
     moveLeft() {}

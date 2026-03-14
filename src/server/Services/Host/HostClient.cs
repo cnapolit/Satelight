@@ -347,7 +347,6 @@ public class HostClient(
         }
 
         await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(cancellationToken);
-        var targetIdString = args.TargetId.ToString();
         var databaseHostGame = await databaseContext
             .HostGames
             .Include(g => g.Host)
@@ -356,17 +355,21 @@ public class HostClient(
             .Include(g => g.LibraryGame)
             .ThenInclude(l => l.GameVariant)
             .ThenInclude(v => v.Games)
-            .FirstOrDefaultAsync(h => h.HostGameId == targetIdString, cancellationToken);
+            .FirstOrDefaultAsync(h => h.Id == args.TargetId, cancellationToken);
         if (databaseHostGame is null)
         {
             return;
         }
 
-        await UpdateHostGameStateAsync(databaseHostGame, cancellationToken);
+        var result = await UpdateHostGameStateAsync(databaseHostGame, cancellationToken);
+        if (result)
+        {
+            await databaseContext.SaveChangesAsync(cancellationToken);
+        }
 
         if (GameUpdated is not null)
         {
-            await GameUpdated.Invoke(new GameUpdatedEventArgs(databaseHostGame.LibraryGame.GameVariant.Games.First().Id));
+            await GameUpdated.Invoke(new GameUpdatedEventArgs(databaseHostGame.LibraryGame.GameVariant.Games.First(), args.Type, args.State));
         }
     }
 
@@ -378,41 +381,134 @@ public class HostClient(
                         .Include    (g => g.GameVariants)
                         .ThenInclude(g => g.LibraryGames)
                         .ThenInclude(g => g.HostGames)
+                        .ThenInclude(h => h.Host)
+                        .Include    (g => g.GameVariants)
+                        .ThenInclude(g => g.LibraryGames)
+                        .ThenInclude(g => g.Library)
                         .FirstAsync (g => g.Id == gameId, cancellationToken);
-        await game
+        var updateGameResults = await game
              .GameVariants
              .SelectMany(v => v.LibraryGames.SelectMany(g => g.HostGames))
-             .ForEachAsync(h => UpdateHostGameStateAsync(h, cancellationToken));
+             .SelectAsync(h => UpdateHostGameStateAsync(h, cancellationToken))
+             .ToListAsync();
+        if (updateGameResults.All(r => !r))
+        {
+            return;
+        }
 
         await databaseContext.SaveChangesAsync(cancellationToken);
 
         if (GameUpdated is not null)
         {
-            await GameUpdated.Invoke(new GameUpdatedEventArgs(gameId));
+            await GameUpdated.Invoke(new GameUpdatedEventArgs(game, null, null));
         }
     }
 
-    private async Task UpdateHostGameStateAsync(HostGame databaseHostGame, CancellationToken cancellationToken = default)
+    public async Task UpdatePlayingGamesAsync(Models.Database.Host host, CancellationToken token)
     {
-        var channel = channelManager.GetChannel(databaseHostGame.Host);
-        Games.GamesClient gamesClient = new(channel);
-        var hostGameIdByteStr = Guid.Parse(databaseHostGame.HostGameId).ToByteString();
-        var getGameReply = await gamesClient.GetAsync(new()
-        {
-            GameId = hostGameIdByteStr,
-            Library = databaseHostGame.LibraryGame.Library.Name,
-            LibraryGameId = databaseHostGame.LibraryGame.Id.ToString()
-        }, cancellationToken: cancellationToken);
+        await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(token);
+        var playingHostGames = await databaseContext
+            .HostGames
+            .Include(h => h.LibraryGame)
+            .ThenInclude(l => l.Library)
+            .Include(h => h.LibraryGame)
+            .ThenInclude(l => l.GameVariant)
+            .ThenInclude(v => v.Games)
+            .Where(h => h.HostId == host.Id && h.Playing)
+            .ToListAsync(token);
 
-        var hostGame = getGameReply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGameIdByteStr);
-        if (hostGame is null)
+        if (playingHostGames.Count is 0)
         {
             return;
         }
 
-        databaseHostGame.Installed = hostGame.Installed;
-        databaseHostGame.Playing = hostGame.Playing;
-        databaseHostGame.Size = hostGame.Size is 0 ? null : hostGame.Size;
+        var channel = channelManager.GetChannel(host);
+        Games.GamesClient gamesClient = new(channel);
+        List<HostGame> changedGames = [];
+
+        foreach (var hostGame in playingHostGames)
+        {
+            try
+            {
+                var hostGameIdByteStr = Guid.Parse(hostGame.HostGameId).ToByteString();
+                var reply = await gamesClient.GetAsync(new()
+                {
+                    GameId        = hostGameIdByteStr,
+                    Library       = hostGame.LibraryGame.Library.Name,
+                    LibraryGameId = hostGame.LibraryGame.Id.ToString()
+                }, cancellationToken: token);
+
+                var protoHostGame = reply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGameIdByteStr);
+                if (protoHostGame is null)
+                {
+                    continue;
+                }
+
+                var wasPlaying    = hostGame.Playing;
+                hostGame.Installed = protoHostGame.Installed;
+                hostGame.Playing   = protoHostGame.Playing;
+                hostGame.Size      = protoHostGame.Size is 0 ? null : protoHostGame.Size;
+
+                if (wasPlaying != hostGame.Playing)
+                {
+                    changedGames.Add(hostGame);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not retrieve playing state for host game '{HostGameId}' on host '{HostId}' ({HostName}).",
+                    hostGame.HostGameId, host.Id, host.HostName);
+            }
+        }
+
+        await databaseContext.SaveChangesAsync(token);
+
+        if (GameUpdated is null) return;
+
+        foreach (var changed in changedGames)
+        {
+            await GameUpdated.Invoke(new GameUpdatedEventArgs(changed.LibraryGame.GameVariant.Games.First(), null, null));
+        }
+    }
+
+    private async Task<bool> UpdateHostGameStateAsync(HostGame databaseHostGame, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var channel = channelManager.GetChannel(databaseHostGame.Host);
+            Games.GamesClient gamesClient = new(channel);
+            var hostGameIdByteStr = Guid.Parse(databaseHostGame.HostGameId).ToByteString();
+            var getGameReply = await gamesClient.GetAsync(new()
+            {
+                GameId = hostGameIdByteStr,
+                Library = databaseHostGame.LibraryGame.Library.Name,
+                LibraryGameId = databaseHostGame.LibraryGame.Id.ToString()
+            }, cancellationToken: cancellationToken);
+
+            var hostGame = getGameReply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGameIdByteStr);
+            if (hostGame is null)
+            {
+                return false;
+            }
+
+            if (databaseHostGame.Installed == hostGame.Installed 
+             && databaseHostGame.Playing == hostGame.Playing
+             && databaseHostGame.Size == hostGame.Size)
+            {
+                return false;
+            }
+
+            databaseHostGame.Installed = hostGame.Installed;
+            databaseHostGame.Playing = hostGame.Playing;
+            databaseHostGame.Size = hostGame.Size is 0 ? null : hostGame.Size;
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError($"Error updating game state for host game '{databaseHostGame.HostGameId}' on host '{databaseHostGame.Host.DisplayName}' ('{databaseHostGame.Host.Ip}'): '{e.Message}'");
+        }
+
+        return false;
     }
     
     public Task<Op> InstallAsync(Guid libraryId, Guid libraryGameId, Guid hostId, CancellationToken cancellationToken)

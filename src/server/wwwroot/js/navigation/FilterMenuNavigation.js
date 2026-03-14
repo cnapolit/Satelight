@@ -1,15 +1,15 @@
 import { MenuNavigation } from "./MenuNavigation.js";
 import {
-    filtersClass,
-    gamesListClass,
+    filtersId,
+    gamesListId,
     selectedClass,
-    topBarClass
+    topBarId
 } from "./navigationConstants.js";
 import { getActiveElement } from "./navigationUtils.js";
 
 export class FilterMenuNavigation extends MenuNavigation {
     constructor() {
-        super(filtersClass, topBarClass, gamesListClass);
+        super(filtersId, topBarId, gamesListId);
     }
 
     select() {

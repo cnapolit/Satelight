@@ -1,4 +1,8 @@
+using Server.Models.Database;
+
 namespace Server.Models.Events;
 
 public sealed record GameUpdatedEventArgs(
-    Guid GameId);
+    Game Game,
+    OperationType? Type,
+    OperationState? State);

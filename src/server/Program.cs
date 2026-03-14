@@ -11,6 +11,7 @@ using Blazorise.Icons.FontAwesome;
 using Server.Blazor;
 using Server.Services.Host;
 using Server.Models.UserInterface;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +59,12 @@ builder.Services
        .AddFontAwesomeIcons()
        .Configure<Settings>(o => o.ContentPath = Path.Combine("wwwroot", "media"));
 var app = builder.Build();
+
+await using (var dbContext = await app.Services.GetRequiredService<IDbContextFactory<DatabaseContext>>().CreateDbContextAsync())
+{
+    dbContext.Operations.RemoveRange(dbContext.Operations);
+    await dbContext.SaveChangesAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

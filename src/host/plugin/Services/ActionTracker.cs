@@ -29,7 +29,10 @@ public class ActionTracker : IActionTracker
     {
         lock (_pollLock)
         {
-            var opEntry = _ops.Values.FirstOrDefault(o => o.GameId == gameId && o.Type == type);
+            var opEntry = _ops.Values.FirstOrDefault(
+                o => o.GameId == gameId
+                  && o.Type == type
+                  && o.State is not (OpState.Finished or OpState.Failed));
             if (opEntry is not null)
             {
                 opEntry.State = state;

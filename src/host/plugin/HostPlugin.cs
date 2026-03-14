@@ -45,7 +45,8 @@ public class HostPlugin : GenericPlugin
         // Auto-register all service types by their implemented interfaces
         builder.RegisterAssemblyTypes(typeof(HostPlugin).Assembly)
             .AsImplementedInterfaces()
-            .SingleInstance();
+            .SingleInstance()
+            .PropertiesAutowired();
 
         _container = builder.Build();
         _actionTracker = _container.Resolve<IActionTracker>();

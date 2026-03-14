@@ -206,7 +206,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     public IActionResult GetLogo(Guid gameId) => GetExtraMetadataFile(gameId, "Logo.png", "image/png");
 
     private IActionResult GetExtraMetadataFile(Guid gameId, string fileName, string mimeType)
-        => TryGetFile(out var filePath, GetExtraMetadataGamePath(gameId), fileName)
+        => TryGetFile(out var filePath, options.Value.PlayniteRootPath, GetExtraMetadataGamePath(gameId), fileName)
          ? PhysicalFile(filePath, mimeType)
          : NotFound();
 

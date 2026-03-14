@@ -37,15 +37,7 @@ public class ActionTracker : IActionTracker
             {
                 opEntry.State = state;
                 opEntry.LastUpdated = DateTime.UtcNow;
-                if (type is not RequestType.StartGame
-                 || state != OpState.Finished)
-                {
-                    return;
-                }
-
-                // Create op to monitor game running to invoke controller callback
-                type = RequestType.MonitorGame;
-                state = OpState.Running;
+                return;
             }
 
             Op op = new()

@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Net.NetworkInformation;
-using Common.Utility.Classes;
 using Common.Utility.Extensions;
 using Common.Utility.Functions;
 using Google.Protobuf;
@@ -32,7 +31,7 @@ public class HostClient(
     {
         await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(token);
         var hosts = await databaseContext.Hosts.ToListAsync(token);
-        // hosts = await hosts.WhereAsync(HostIsAvailableAsync, token).ToListAsync();
+        hosts = await GetActiveHostsAsync(hosts, token);
         var progress = 0;
         var total = hosts.Count + 1;
         progressCallback("Initializing host caches", progress++, total);
@@ -41,6 +40,7 @@ public class HostClient(
         var user = await databaseContext.Users.FirstAsync(token);
         var completionStatus = await databaseContext.CompletionStatuses.FirstAsync(token);
 
+        List<Task> mediaDownloadTasks = [];
         Dictionary<Guid, Cache> hostCaches = [];
         await hosts.ForEachAsync(async h =>
         {
@@ -113,7 +113,7 @@ public class HostClient(
                     {
                         hostGames[databaseHostGame.Id] = databaseHostGame;
                         var game = databaseHostGame.LibraryGame.GameVariant.Games.First();
-                        await UpdateHostGameAsync(host, hostGame.Id.ToGuid(), game.Id, token);
+                        mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGame.Id.ToGuid(), game.Id, token));
                         continue;
                     }
 
@@ -126,7 +126,7 @@ public class HostClient(
                     else
                     {
                         var libraryName = cache.Libraries.First(l => l.Id == hostGame.Library).Name;
-                        library = await databaseContext.Libraries.FirstAsync(
+                        library = await databaseContext.Libraries.AsNoTracking().FirstAsync(
                             l => l.Name == libraryName, cancellationToken: token);
                     }
 
@@ -145,19 +145,19 @@ public class HostClient(
                 GameVariant newGameVariant;
                 if (newHostGames.Count == protoGame.HostGames.Count)
                 {
-                    var genres = await GetNamedDatabaseObjectsAsync(
-                        databaseContext.Genres, cache.Genres, protoGame.Genres, token);
-                    var series = await GetNamedDatabaseObjectsAsync(
-                        databaseContext.Series, cache.Series, protoGame.Series, token);
-                    var tags = await GetNamedDatabaseObjectsAsync(
-                        databaseContext.Tags,
-                        cache.Tags,
-                        protoGame.HostGames.SelectMany(h => h.Tags).Distinct(),
-                        token);
                     var game = await databaseContext.Games.FirstOrDefaultAsync(
                         g => g.Name == protoGame.Name, cancellationToken: token);
                     if (game is null)
                     {
+                        var genres = await GetNamedDatabaseObjectsAsync(
+                            databaseContext.Genres, cache.Genres, protoGame.Genres, token);
+                        var series = await GetNamedDatabaseObjectsAsync(
+                            databaseContext.Series, cache.Series, protoGame.Series, token);
+                        var tags = await GetNamedDatabaseObjectsAsync(
+                            databaseContext.Tags,
+                            cache.Tags,
+                            protoGame.HostGames.SelectMany(h => h.Tags).Distinct(),
+                            token);
                         game = databaseContext.Games.Add(new()
                         {
                             Name = protoGame.Name,
@@ -246,30 +246,40 @@ public class HostClient(
                         InstallPath   = string.Empty,
                         Version       = string.Empty
                     });
-                    
-                    await databaseContext.SaveChangesAsync(token);
 
                     var hostGameId = newHostGame.Id.ToGuid();
                     var gameId     = newGameVariant.Games.First().Id;
-                    await UpdateHostGameAsync(host, hostGameId, gameId, token);
+                    mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGameId, gameId, token));
                 }
             }
+                    
+            await databaseContext.SaveChangesAsync(token);
         }
         catch (Exception ex)
         {
             logger.LogError($"Error fetching games from host '{host.HostName}' ('{host.Ip}'): '{ex.Message}'");
         }
+
+        try
+        {
+            await Task.WhenAll(mediaDownloadTasks);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error while downloading game media");
+        }
     }
 
-    private Task UpdateHostGameAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
-        => ValueTaskAwaiter
-            .WhenAll(mediaFileService.DownloadLogoAsync        (host, hostGameId, gameId, token),
-                     mediaFileService.DownloadIconAsync        (host, hostGameId, gameId, token),
-                     mediaFileService.DownloadTrailerAsync     (host, hostGameId, gameId, token),
-                     mediaFileService.DownloadMicroTrailerAsync(host, hostGameId, gameId, token))
-          .WithAsync(mediaFileService.DownloadBackgroundAsync  (host, hostGameId, gameId, token),
-                     mediaFileService.DownloadCoverAsync       (host, hostGameId, gameId, token),
-                     mediaFileService.DownloadMusicAsync       (host, hostGameId, gameId, token));
+    private List<Task> CreateMediaDownloadTasks(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token) =>
+    [
+        mediaFileService.DownloadLogoAsync        (host, hostGameId, gameId, token).AsTask(),
+        mediaFileService.DownloadIconAsync        (host, hostGameId, gameId, token).AsTask(),
+        mediaFileService.DownloadTrailerAsync     (host, hostGameId, gameId, token).AsTask(),
+        mediaFileService.DownloadMicroTrailerAsync(host, hostGameId, gameId, token).AsTask(),
+        mediaFileService.DownloadBackgroundAsync  (host, hostGameId, gameId, token),
+        mediaFileService.DownloadCoverAsync       (host, hostGameId, gameId, token),
+        mediaFileService.DownloadMusicAsync       (host, hostGameId, gameId, token),
+    ];
 
     private static async ValueTask<bool> HostIsAvailableAsync(Models.Database.Host host, CancellationToken token)
         => IPAddress.TryParse(host.Ip, out var remoteIp)
@@ -312,6 +322,7 @@ public class HostClient(
         var genres = ids.Select(g => cache.First(cg => cg.Id == g).Name).ToList();
         return set.Where(g => genres.Contains(g.Name)).ToListAsync(token);
     }
+
     private static Task<List<T>> GetNamedDatabaseObjectsAsync<T>(
         DbSet<T> set, ICollection<Label> cache, IEnumerable<string> names, CancellationToken token)
         where T : NamedDatabaseObject
@@ -325,6 +336,18 @@ public class HostClient(
             using var ping = new Ping();
             var reply = await ping.SendPingAsync(ip, TimeSpan.FromSeconds(1), cancellationToken: token);
             return reply.Status;
+    }
+
+    public async Task<List<Models.Database.Host>> GetActiveHostsAsync(List<Models.Database.Host> hosts, CancellationToken token)
+    {
+        using Ping ping = new();
+        return await hosts.WhereAsync(HostIsActiveAsync).ToListAsync();
+
+        async Task<bool> HostIsActiveAsync(Models.Database.Host host)
+        {
+            var result = await ping.SendPingAsync(host.Ip, TimeSpan.FromSeconds(1), cancellationToken: token);
+            return result.Status is IPStatus.Success;
+        }
     }
 
     public async Task HandleOperationStateChangeAsync(

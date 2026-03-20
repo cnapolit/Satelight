@@ -13,21 +13,43 @@ public class HostOperationPollingService(
     ILogger<HostOperationPollingService> logger,
     IDbContextFactory<DatabaseContext> databaseContextFactory,
     ChannelManager channelManager,
-    HostClient hostClient) : BackgroundService
+    HostClient hostClient,
+    HostNetworkService hostNetworkService) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
     private readonly ConcurrentDictionary<Guid, OperationState> _lastOpStates = new();
 
     public event Func<HostOperationChangedEventArgs, Task>? OperationChanged;
+    public event Func<ActiveHostsChangedEventArgs, Task>? ActiveHostsChanged;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using PeriodicTimer timer = new(PollInterval);
+        List<Models.Database.Host> activeHosts = [];
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await PollActiveHostsAsync(stoppingToken);
+                await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(stoppingToken);
+                var hosts = await databaseContext
+                    .Hosts
+                    .AsNoTracking()
+                    .ToListAsync(stoppingToken);
+                
+                var updatedActiveHosts = await hosts.WhereAllAsync(h => hostNetworkService.HostIsActiveAsync(h.Ip));
+                var addedActiveHost = updatedActiveHosts.ExceptBy(activeHosts.Select(h => h.Id), h => h.Id).ToList();
+                var removedActiveHosts = activeHosts.ExceptBy(updatedActiveHosts.Select(h => h.Id), h => h.Id).ToList();
+                if (addedActiveHost.Count != 0 || removedActiveHosts.Count != 0)
+                {
+                    ActiveHostsChanged?.Invoke(new (addedActiveHost, removedActiveHosts));
+                }
+
+                activeHosts = updatedActiveHosts;
+                foreach (var host in activeHosts)
+                {
+                    await hostClient.UpdatePlayingGamesAsync(host, stoppingToken);
+                    await PollHostOperationsAsync(host, stoppingToken);
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -42,21 +64,6 @@ public class HostOperationPollingService(
             {
                 break;
             }
-        }
-    }
-
-    private async Task PollActiveHostsAsync(CancellationToken token)
-    {
-        await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(token);
-        var hosts = await databaseContext
-            .Hosts
-            .AsNoTracking()
-            .ToListAsync(token);
-
-        foreach (var host in hosts)
-        {
-            await hostClient.UpdatePlayingGamesAsync(host, token);
-            await PollHostOperationsAsync(host, token);
         }
     }
 

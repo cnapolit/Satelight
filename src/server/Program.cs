@@ -49,6 +49,7 @@ builder.Services
        .AddSingleton<ChannelManager>()
        .AddSingleton<MediaFileService>()
        .AddSingleton<HostClient>()
+       .AddSingleton<HostNetworkService>()
        .AddHostedService(sp => sp.GetRequiredService<HostOperationPollingService>())
        .AddScoped<BrowseState>()
        .AddBlazorise( o =>

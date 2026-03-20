@@ -1,3 +1,4 @@
+using Common.Utility.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Satelight.Protos.Core;
 using Server.Database;
@@ -14,12 +15,18 @@ public class SatelightDatabaseClient : IDatabaseClient
     private readonly IDbContextFactory<DatabaseContext> _databaseContextFactory;
     private readonly MediaFileService _mediaFileService;
     private readonly HostClient _hostClient;
+    private readonly HostNetworkService _hostNetworkService;
 
-    public SatelightDatabaseClient(IDbContextFactory<DatabaseContext> databaseContextFactory, MediaFileService mediaFileService, HostClient hostClient)
+    public SatelightDatabaseClient(
+        IDbContextFactory<DatabaseContext> databaseContextFactory,
+        MediaFileService mediaFileService,
+        HostClient hostClient,
+        HostNetworkService hostNetworkService)
     {
         _databaseContextFactory = databaseContextFactory;
         _mediaFileService = mediaFileService;
         _hostClient = hostClient;
+        _hostNetworkService = hostNetworkService;
         _hostClient.GameUpdated += CallGameUpdated;
     }
 
@@ -117,6 +124,9 @@ public class SatelightDatabaseClient : IDatabaseClient
         CancellationToken cancellationToken = default)
     {
         await using var databaseContext = await _databaseContextFactory.CreateDbContextAsync(cancellationToken);
+        var hosts = await databaseContext.Hosts.AsNoTracking().ToListAsync(cancellationToken);
+        var host = await hosts.FirstOrDefaultAsync(h => _hostNetworkService.HostIsActiveAsync(h.Ip))
+            ?? throw new Exception("No Host Available");
         var gameId = Guid.Parse(id);
         var game = await databaseContext
                         .Games
@@ -125,7 +135,7 @@ public class SatelightDatabaseClient : IDatabaseClient
                         .ThenInclude(l => l.HostGames)
                         .FirstAsync(g => g.Id == gameId, cancellationToken);
         var libraryGame = game.GameVariants.First().LibraryGames.First();
-        var hostGame = libraryGame.HostGames.First();
+        var hostGame = libraryGame.HostGames.First(g => g.HostId == host.Id);
         
         await action(libraryGame.LibraryId, libraryGame.Id, hostGame.HostId, cancellationToken);
     }

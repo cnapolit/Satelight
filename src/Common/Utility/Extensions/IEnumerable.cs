@@ -73,6 +73,32 @@ public static class IEnumerableExt
         foreach (var task in tasks) await task;
     }
 
+    public static async Task<T2[]> WhenAllAsync<T, T2>(this IEnumerable<T> source, Func<T, Task<T2>> func)
+        => await Task.WhenAll(source.Select(func));
+
+    public static async Task<List<T>> WhereAllAsync<T>(this IEnumerable<T> source, Func<T, Task<bool>> func)
+    {
+        var sourceList = source.ToList();
+        var results = await sourceList.WhenAllAsync(func);
+        return sourceList.Where((_, i) => results[i]).ToList();
+    }
+
+    public static async Task<T?> FirstOrDefaultAsync<T>(this IEnumerable<T> source, Func<T, Task<bool>> func)
+    {
+        var sourceList = source.ToList();
+        var tasks = sourceList.Select(item => func(item).ContinueWith(t => (t.Result, item))).ToList();
+
+        while (tasks.Count > 0)
+        {
+            var completed = await Task.WhenAny(tasks);
+            tasks.Remove(completed);
+            var (result, item) = await completed;
+            if (result) return item;
+        }
+
+        return default;
+    }
+    
     public static bool All<TCon>(this IEnumerable<TCon> conditions) where TCon : Conditional
         => conditions.All(c => c);
 

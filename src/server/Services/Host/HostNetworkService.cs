@@ -62,4 +62,11 @@ public partial class HostNetworkService
 
         return (dnsName, string.Empty);
     }
+
+    public async Task<bool> HostIsActiveAsync(string ipAddress)
+    {
+        using Ping ping = new();
+        var reply = await ping.SendPingAsync(ipAddress, 1000);
+        return reply.Status == IPStatus.Success;
+    }
 }

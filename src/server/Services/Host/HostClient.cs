@@ -27,11 +27,13 @@ public class HostClient(
     public event Func<GameUpdatedEventArgs, Task>? GameUpdated;
 
     public async Task GetGamesAsync(
-        Action<string, int, int> progressCallback, Action<int, int> stepProgressCallback, CancellationToken token)
+        Action<string, int, int> progressCallback, Action<int, int> stepProgressCallback, List<Guid>? hostsToUpdates = null, CancellationToken token = default)
     {
         await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(token);
-        var hosts = await databaseContext.Hosts.ToListAsync(token);
-        hosts = await GetActiveHostsAsync(hosts, token);
+        var hostQuery = hostsToUpdates is null 
+            ? databaseContext.Hosts
+            : databaseContext.Hosts.Where(h => hostsToUpdates.Contains(h.Id));
+        var hosts = await hostQuery.ToListAsync(token);
         var progress = 0;
         var total = hosts.Count + 1;
         progressCallback("Initializing host caches", progress++, total);
@@ -112,8 +114,6 @@ public class HostClient(
                     if (databaseHostGame != null)
                     {
                         hostGames[databaseHostGame.Id] = databaseHostGame;
-                        var game = databaseHostGame.LibraryGame.GameVariant.Games.First();
-                        mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGame.Id.ToGuid(), game.Id, token));
                         continue;
                     }
 
@@ -143,9 +143,10 @@ public class HostClient(
                 if (hostGames.Count == protoGame.HostGames.Count) continue;
 
                 GameVariant newGameVariant;
+                Models.Database.Game? game;
                 if (newHostGames.Count == protoGame.HostGames.Count)
                 {
-                    var game = await databaseContext.Games.FirstOrDefaultAsync(
+                    game = await databaseContext.Games.FirstOrDefaultAsync(
                         g => g.Name == protoGame.Name, cancellationToken: token);
                     if (game is null)
                     {
@@ -221,6 +222,7 @@ public class HostClient(
                         .Select     (l => new { l.Id, l.GameVariant })
                         .FirstAsync (l => l.Id == libraryGameId, token);
                     newGameVariant = libraryGame.GameVariant;
+                    game = newGameVariant.Games.First();
                 }
 
                 foreach (var (newHostGame, libraryGame, library) in newHostGames)
@@ -228,7 +230,6 @@ public class HostClient(
                     var addedLibraryGame = libraryGame ?? databaseContext.LibraryGames.Add(new()
                     {
                         LibraryId     = library.Id,
-                        Library       = library,
                         LibraryGameId = newHostGame.LibraryGameId,
                         GameVariant   = newGameVariant
 
@@ -237,9 +238,7 @@ public class HostClient(
                     {
                         HostId        = host.Id,
                         HostGameId    = newHostGame.Id.ToGuid().ToString(),
-                        LibraryGameId = addedLibraryGame.LibraryId,
-                        Host          = host,
-                        LibraryGame   = addedLibraryGame,
+                        LibraryGameId = addedLibraryGame.Id,
                         Installed     = newHostGame.Installed,
                         Playing       = newHostGame.Playing,
                         Size          = newHostGame.Size is 0 ? null : newHostGame.Size,
@@ -248,12 +247,10 @@ public class HostClient(
                     });
 
                     var hostGameId = newHostGame.Id.ToGuid();
-                    var gameId     = newGameVariant.Games.First().Id;
-                    mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGameId, gameId, token));
+                    await databaseContext.SaveChangesAsync(token);
+                    mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGameId, game.Id, token));
                 }
             }
-                    
-            await databaseContext.SaveChangesAsync(token);
         }
         catch (Exception ex)
         {

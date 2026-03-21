@@ -87,7 +87,11 @@
 </Dropdown>
 <button class="btn btn-primary" @onclick="FilterGamesAsync">Apply Filter</button>
 <button class="btn btn-primary" @onclick="ShowSaveFilterModal">Save Filter</button>
-<button class="btn btn-primary" @onclick="GetGamesAsync">Get Games</button>
+<button class="btn btn-primary" @onclick="() => GetGamesAsync()">Get Games</button>
+@foreach (var host in _hosts)
+{
+    <button class="btn btn-primary" @onclick="() => GetGamesAsync(host.Id)">Get Games for @host.DisplayName</button>
+}
 
 <div class="games-grid">
     @foreach (var game in _games)
@@ -202,6 +206,7 @@
 
 @code {
     private List<Game> _games = [];
+    private List<Host> _hosts = [];
     private List<Guid> _genreFilters = [];
     private List<Guid> _featureFilters = [];
     private List<Guid> _platformFilters = [];
@@ -355,6 +360,7 @@
         await using var databaseContext = await DatabaseContextFactory.CreateDbContextAsync();
         _filters = await databaseContext.Filters.ToArrayAsync();
         _games = await databaseContext.Games.ToListAsync();
+        _hosts = await databaseContext.Hosts.ToListAsync();
         foreach (var filter in _filterKeys)
         {
             var fields = filter switch
@@ -370,12 +376,12 @@
     }
 
     private CancellationTokenSource _cancellationTokenSource = new();
-    private async Task GetGamesAsync()
+    private async Task GetGamesAsync(Guid? hostId = null)
     {
         CloseGameDetails();
         _cancellationTokenSource = new();
         _showAddGamesModal = true;
-        await HostClient.GetGamesAsync(UpdateProgress, UpdateStepProgress, _cancellationTokenSource.Token);
+        await HostClient.GetGamesAsync(UpdateProgress, UpdateStepProgress, hostId is null ? null : [hostId.Value], _cancellationTokenSource.Token);
         _showAddGamesModal = false;
     }
 

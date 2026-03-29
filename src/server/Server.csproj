@@ -39,11 +39,4 @@
     <ProjectReference Include="..\Common\Utility.Core\Utility.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="..\Protos\server.proto" GrpcServices="Server" />
-    <Protobuf Include="..\Protos\Events.proto" GrpcServices="Server" />
-    <Protobuf Include="..\Protos\host.proto" GrpcServices="Client" />
-    <Protobuf Include="..\Protos\core.proto" GrpcServices="Both" />
-  </ItemGroup>
-
 </Project>

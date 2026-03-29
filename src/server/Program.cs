@@ -63,6 +63,7 @@ var app = builder.Build();
 
 await using (var dbContext = await app.Services.GetRequiredService<IDbContextFactory<DatabaseContext>>().CreateDbContextAsync())
 {
+    await dbContext.Database.MigrateAsync();
     dbContext.Operations.RemoveRange(dbContext.Operations);
     await dbContext.SaveChangesAsync();
 }

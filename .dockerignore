@@ -1,0 +1,7 @@
+**/bin/
+**/Build-out/*.db
+**/Build-out/*.db-shm
+**/Build-out/*.db-wal
+src/server/wwwroot/media/
+# Exclude obj/ except pre-generated proto files
+**/obj/

@@ -15,7 +15,7 @@ namespace Server.Services.Protos;
 public class GamesService(
     ILogger<GamesService> logger,
     IDbContextFactory<DatabaseContext> databaseContextFactory,
-    HostClient hostClient,
+    GameOperationService gameOperationService,
     EventsService eventsService) : Games.GamesBase
 {
     public override async Task<GetGameReply> Get(GetGameBody body, ServerCallContext context)
@@ -33,10 +33,10 @@ public class GamesService(
     }
 
     public override async Task<InstallGameReply> Install(InstallGameBody body, ServerCallContext context)
-        => new() { Op = await TriggerActionAsync(hostClient.InstallAsync, body.UserGameAction, context.CancellationToken) };
+        => new() { Op = await TriggerActionAsync(gameOperationService.InstallAsync, body.UserGameAction, context.CancellationToken) };
 
     public override async Task<UninstallGameReply> Uninstall(UninstallGameBody body, ServerCallContext context)
-        => new() { Op = await TriggerActionAsync(hostClient.UninstallAsync, body.UserGameAction, context.CancellationToken) };
+        => new() { Op = await TriggerActionAsync(gameOperationService.UninstallAsync, body.UserGameAction, context.CancellationToken) };
 
     public override async Task<RemoveGameReply> Remove(RemoveGameBody body, ServerCallContext context)
     {
@@ -49,13 +49,13 @@ public class GamesService(
     }
 
     public override async Task<RepairGameReply> Repair(RepairGameBody body, ServerCallContext context)
-        => new() { Op = await TriggerActionAsync(hostClient.RepairAsync, body.UserGameAction, context.CancellationToken) };
+        => new() { Op = await TriggerActionAsync(gameOperationService.RepairAsync, body.UserGameAction, context.CancellationToken) };
 
     public override async Task<StartGameReply> Start(StartGameBody body, ServerCallContext context)
-        => new() { Op = await TriggerActionAsync(hostClient.StartAsync, body.UserGameAction, context.CancellationToken) };
+        => new() { Op = await TriggerActionAsync(gameOperationService.StartAsync, body.UserGameAction, context.CancellationToken) };
 
     public override async Task<StopGameReply> Stop(StopGameBody body, ServerCallContext context)
-        => new() { Op = await TriggerActionAsync(hostClient.StopAsync, body.UserGameAction, context.CancellationToken) };
+        => new() { Op = await TriggerActionAsync(gameOperationService.StopAsync, body.UserGameAction, context.CancellationToken) };
 
 
     public override async Task Stream(

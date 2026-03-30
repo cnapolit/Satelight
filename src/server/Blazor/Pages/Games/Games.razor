@@ -9,7 +9,7 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<DatabaseContext> DatabaseContextFactory
 @inject MediaFileService MediaFileService
-@inject HostClient HostClient
+@inject GameLibraryService gameLibraryService
 @layout MainLayout
 @page "/Games"
 
@@ -381,7 +381,7 @@
         CloseGameDetails();
         _cancellationTokenSource = new();
         _showAddGamesModal = true;
-        await HostClient.GetGamesAsync(UpdateProgress, UpdateStepProgress, hostId is null ? null : [hostId.Value], _cancellationTokenSource.Token);
+        await gameLibraryService.GetGamesAsync(UpdateProgress, UpdateStepProgress, hostId is null ? null : [hostId.Value], _cancellationTokenSource.Token);
         _showAddGamesModal = false;
     }
 

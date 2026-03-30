@@ -14,20 +14,23 @@ public class SatelightDatabaseClient : IDatabaseClient
 {
     private readonly IDbContextFactory<DatabaseContext> _databaseContextFactory;
     private readonly MediaFileService _mediaFileService;
-    private readonly HostClient _hostClient;
+    private readonly GameOperationService _gameOperationService;
+    private readonly GameLibraryService _gameLibraryService;
     private readonly HostNetworkService _hostNetworkService;
 
     public SatelightDatabaseClient(
         IDbContextFactory<DatabaseContext> databaseContextFactory,
         MediaFileService mediaFileService,
-        HostClient hostClient,
+        GameOperationService gameOperationService,
+        GameLibraryService gameLibraryService,
         HostNetworkService hostNetworkService)
     {
         _databaseContextFactory = databaseContextFactory;
         _mediaFileService = mediaFileService;
-        _hostClient = hostClient;
+        _gameOperationService = gameOperationService;
         _hostNetworkService = hostNetworkService;
-        _hostClient.GameUpdated += CallGameUpdated;
+        _gameLibraryService = gameLibraryService;
+        _gameLibraryService.GameUpdated += CallGameUpdated;
     }
 
     private Task CallGameUpdated(GameUpdatedEventArgs args)
@@ -63,7 +66,7 @@ public class SatelightDatabaseClient : IDatabaseClient
                         .ThenInclude(g => g.LibraryGames)
                         .ThenInclude(g => g.HostGames)
                         .FirstAsync (g => g.Id == gameId, cancellationToken);
-        _hostClient.UpdateGameStateAsync(game.Id, cancellationToken);
+        _gameLibraryService.UpdateGameStateAsync(game.Id, cancellationToken);
         return new()
         {
             Id = id,
@@ -95,15 +98,15 @@ public class SatelightDatabaseClient : IDatabaseClient
                               : GameStatus.NotInstalled;
 
     public Task StartGameAsync(string id, CancellationToken cancellationToken = default)
-        => ExecuteAsync(_hostClient.StartAsync, id, cancellationToken);
+        => ExecuteAsync(_gameOperationService.StartAsync, id, cancellationToken);
     public Task StopGameAsync(string id, CancellationToken cancellationToken = default)
-        => ExecuteAsync(_hostClient.StopAsync, id, cancellationToken);
+        => ExecuteAsync(_gameOperationService.StopAsync, id, cancellationToken);
 
     public Task InstallGameAsync(string id, CancellationToken cancellationToken = default)
-        => ExecuteAsync(_hostClient.InstallAsync, id, cancellationToken);
+        => ExecuteAsync(_gameOperationService.InstallAsync, id, cancellationToken);
 
     public Task UninstallGameAsync(string id, CancellationToken cancellationToken = default)
-        => ExecuteAsync(_hostClient.UninstallAsync, id, cancellationToken);
+        => ExecuteAsync(_gameOperationService.UninstallAsync, id, cancellationToken);
 
     public async Task<HostInfo> GetHostAsync(CancellationToken cancellationToken = default)
     {

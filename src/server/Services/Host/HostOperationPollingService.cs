@@ -13,7 +13,7 @@ public class HostOperationPollingService(
     ILogger<HostOperationPollingService> logger,
     IDbContextFactory<DatabaseContext> databaseContextFactory,
     ChannelManager channelManager,
-    HostClient hostClient,
+    GameLibraryService gameLibraryService,
     HostNetworkService hostNetworkService) : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
@@ -47,7 +47,7 @@ public class HostOperationPollingService(
                 activeHosts = updatedActiveHosts;
                 foreach (var host in activeHosts)
                 {
-                    await hostClient.UpdatePlayingGamesAsync(host, stoppingToken);
+                    await gameLibraryService.UpdatePlayingGamesAsync(host, stoppingToken);
                     await PollHostOperationsAsync(host, stoppingToken);
                 }
             }
@@ -161,7 +161,7 @@ public class HostOperationPollingService(
 
         foreach (var changed in changedOps)
         {
-            await hostClient.HandleOperationStateChangeAsync(changed, token);
+            await gameLibraryService.HandleOperationStateChangeAsync(changed, token);
         }
 
         if (OperationChanged is null) return;

@@ -1,15 +1,18 @@
 ﻿@using Server.Models.UserInterface
+@inject BrowseState BrowseState
+@inject IJSRuntime JS
 
 <div id="game-logo">
-    @GetLogo(_gameOne, "logo-one",  _gameOneIsVisible)
-    @GetLogo(_gameTwo, "logo-two", !_gameOneIsVisible)
+    @GetLogo(_gameOne, "logo-one")
+    @GetLogo(_gameTwo, "logo-two")
 </div>
-
 
 @code {
     private GameDisplayInfo? _gameOne;
     private GameDisplayInfo? _gameTwo;
     private bool _gameOneIsVisible;
+    private bool _hasChanged;
+    private IJSObjectReference? _module;
 
     [Parameter]
     public GameDisplayInfo? Game
@@ -30,20 +33,58 @@
                 _gameOne = value;
             }
             _gameOneIsVisible = !_gameOneIsVisible;
+            _hasChanged = true;
             StateHasChanged();
         }
     }
 
-    private RenderFragment GetLogo(GameDisplayInfo? game, string divClass, bool isVisible)
+    private void GameHasChanged()
+    {
+        if (BrowseState.SelectedGame is null)
+        {
+            return;
+        }
+
+        if (_gameOneIsVisible)
+        {
+            _gameTwo = BrowseState.SelectedGame;
+        }
+        else
+        {
+            _gameOne = BrowseState.SelectedGame;
+        }
+        _gameOneIsVisible = !_gameOneIsVisible;
+        _hasChanged = true;
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized() => BrowseState.SelectedGameChanged += GameHasChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./Blazor/Components/Logo.razor.js");
+        }
+
+        if (_hasChanged && _module is not null)
+        {
+            _hasChanged = false;
+            var show = _gameOneIsVisible ? "logo-one" : "logo-two";
+            var hide = _gameOneIsVisible ? "logo-two" : "logo-one";
+            await _module.InvokeVoidAsync("revealLogo", show, hide);
+        }
+    }
+
+    private RenderFragment GetLogo(GameDisplayInfo? game, string divClass)
     {
         if (game is null)
         {
             return @<div></div>;
         }
 
-        var visibilityClass = isVisible ? "" : "hide";
         return string.IsNullOrWhiteSpace(game.Logo)
-            ? @<div class="logo text @divClass @visibilityClass">@(game.Name)</div>
-            : @<img class="logo image @divClass @visibilityClass" src="@game.Logo" alt="@game.Name"/>;
+            ? @<div class="logo text @divClass hide">@(game.Name)</div>
+            : @<img class="logo image @divClass hide" src="@game.Logo" alt="@game.Name"/>;
     }
 }

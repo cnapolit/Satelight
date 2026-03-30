@@ -9,7 +9,9 @@
     {
         case GameListState.Scroll:
             <div id="games" class="games-list games-scroll">
-                @BrowseState.Games.Select(CreateScrollGameDiv).Render()
+                <Virtualize Items="BrowseState.Games" Context="game">
+                    @CreateScrollGameDiv(game)
+                </Virtualize>
                 @CreateGamePaddingDiv()
                 @CreateGamePaddingDiv()
                 @CreateGamePaddingDiv()

@@ -1,39 +1,33 @@
+@inject IJSRuntime JS
+
 <div id="topBar">
-    <div id="menu-button" tabindex="0">
+    <div id="menu-button" class="bar-item" tabindex="0">
         <img src="/res/bars.png"/>
     </div>
-    <div id="gridButton" tabindex="0"></div>
+    <div id="gridButton" class="bar-item" tabindex="0">G</div>
     <div id="clock">
-        <div id="clock-text">@currentDateTime</div>
+        <div id="clock-text"></div>
     </div>
     <div id="searchBar"></div>
 </div>
 
 @code
 {
-    private string currentDateTime = "";
-    private System.Timers.Timer timer = new System.Timers.Timer();
+    private IJSObjectReference? module;
 
-    private async Task UpdateClock()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        currentDateTime = DateTime.Now.ToString("HH:mm");
-        await InvokeAsync(StateHasChanged);
+        if (!firstRender) return;
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./Blazor/Components/TopBar.razor.js");
+        await module.InvokeVoidAsync("initClock");
     }
 
-    protected override async Task OnInitializedAsync()
-    { 
-        timer.Interval = 60000; 
-        timer.Elapsed += OnTimerTick;
-        timer.Start();
-        await UpdateClock();
-    }
-
-    private void OnTimerTick(object _, System.Timers.ElapsedEventArgs __)
-        => InvokeAsync(UpdateClock);
-
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        timer.Stop();
-        timer.Dispose();
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("disposeClock");
+            await module.DisposeAsync();
+        }
     }
 }

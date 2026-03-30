@@ -1,6 +1,8 @@
-﻿<div id="@FadeImageId">
-    <div class="fade-image img-1"></div>
-    <div class="fade-image img-2"></div>
+﻿@inject IJSRuntime JS
+
+<div id="@FadeImageId">
+    <img class="fade-image img-1"/>
+    <img class="fade-image img-2"/>
 </div>
 
 <style>
@@ -9,28 +11,12 @@
         position: absolute;
         object-fit: cover;
         transition: opacity .75s ease-in-out;
-        background-size: contain;
-        /* background-repeat: no-repeat; */
         width: 100vw;
-        height: 100vh;
-        background-color: #121212;
-        overflow: hidden;
+        opacity: 0;
     }
 
     .filter {
         background-color: rgba(0, 0, 0, 0.5);
-    }
-
-    .img-1
-    {
-        opacity: @(imageOneIsActive ? "1" : "0");
-        background-image: url('@(imageOne)');
-    }
-
-    .img-2
-    {
-        opacity: @(imageOneIsActive ? "0" : "1");
-        background-image: url('@(imageTwo)');
     }
 
     #@(FadeImageId) {
@@ -38,6 +24,8 @@
         width: 100vw;
         height: 100vh;
         z-index: -3;
+        background-color: #121212;
+        overflow: hidden;
         transition: transform 0.125s linear, background-color 0.125s linear;
     }
 
@@ -55,71 +43,40 @@
 </style>
 
 @code {
-    private bool imageOneIsActive;
-    private string imageOne;
-    private string imageTwo;
-    private string nextImage;
-    
+    private bool _imageOneIsActive;
+    private bool _hasChanged;
+    private IJSObjectReference? _module;
+
     [Parameter]
     public string FadeImageId { get; set; }
-    private Task imageTask = Task.CompletedTask;
-    private object imgLock = new object();
-    
 
-    
     [Parameter]
     public string Img
     {
         set
         {
-            if (imageOneIsActive)
-            {
-                imageTwo = value;
-            }
-            else
-            {
-                imageOne = value;
-            }
-            imageOneIsActive = !imageOneIsActive;
+            _imageOneIsActive = !_imageOneIsActive;
+            _hasChanged = true;
+            _pendingUrl = value;
             StateHasChanged();
-            return;
-            lock (imgLock)
-            {
-                nextImage = value;
-                lastChangeTime = DateTime.Now;
-            }
-            if (imageTask.IsCompleted)
-            {
-                imageTask = InvokeAsync(SetNextImgAsync);
-            }
         }
     }
 
-    private DateTime lastChangeTime = DateTime.MinValue;
+    private string? _pendingUrl;
 
-    private async Task SetNextImgAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var delay = TimeSpan.FromMilliseconds(250);
-        while (true)
+        if (firstRender)
         {
-            TimeSpan elapsed;
-            lock (imgLock)
-            if   ((elapsed = DateTime.Now - lastChangeTime) > delay)
-            {
-                if (imageOneIsActive)
-                {
-                    imageTwo = nextImage;
-                }
-                else
-                {
-                    imageOne = nextImage;
-                }
-                imageOneIsActive = !imageOneIsActive;
-                StateHasChanged();
-                break;
-            }
-            await Task.Delay(delay - elapsed);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./Blazor/Components/FadeImage.razor.js");
+        }
+
+        if (_hasChanged && _module is not null)
+        {
+            _hasChanged = false;
+            var show = _imageOneIsActive ? ".img-1" : ".img-2";
+            var hide = _imageOneIsActive ? ".img-2" : ".img-1";
+            await _module.InvokeVoidAsync("revealImage", FadeImageId, show, hide, _pendingUrl);
         }
     }
-
 }

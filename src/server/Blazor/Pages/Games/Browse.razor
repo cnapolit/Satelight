@@ -1,28 +1,17 @@
 @using Server.Blazor.Components
-@using Server.Models.UserInterface
 @rendermode InteractiveServer
-@inject BrowseState BrowseState
 @page "/"
 
+<script src="js/webos/webOSTV.js" charset="utf-8"></script>
+<script src="js/webos/webOSTV-dev.js" charset="utf-8"></script>
 <script src="js/Index.js" type="module"></script>
 
 <Background/>
 <TopBar/>
-<Logo Game="@BrowseState.SelectedGame"/>
+<Logo/>
 <Filters/>
 <Server.Blazor.Components.Games/>
+
 <GameDetails/> 
 <GameStartDialogue/>
 <GameOptions/>
-
-@code {
-    protected override void OnInitialized()
-    {
-        BrowseState.SelectedGameChanged += StateHasChanged;
-    }
-
-    public void Dispose()
-    {
-        BrowseState.SelectedGameChanged -= StateHasChanged;
-    }
-}

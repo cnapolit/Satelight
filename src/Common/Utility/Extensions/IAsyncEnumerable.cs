@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace Common.Utility.Extensions;
+﻿namespace Common.Utility.Extensions;
 
 public static class IAsyncEnumerableExt
 {

@@ -1,20 +1,20 @@
 ﻿using Comms.Common.Interface.Models;
 using Comms.Host.Interface.Models;
-using Playnite.SDK;
-using Game = Playnite.SDK.Models.Game;
+using Playnite;
+using Game = Playnite.Game;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class StartGameHandler(IPlayniteAPI playniteApi, IActionTracker actionTracker, IGetGamesService getGamesService)
-    : GameActionRequestHandler<StartGameRequest, StartGameResponse>(actionTracker, getGamesService)
+public class StartGameHandler(IPlayniteApi playniteApi, IActionTracker actionTracker, ILibraryApi libraryApi)
+    : GameActionRequestHandler<StartGameRequest, StartGameResponse>(actionTracker, libraryApi)
 {
     protected override RequestType RequestType => RequestType.StartGame;
-    protected override OpState Func(Game game)
+    protected override async ValueTask<OpState> FuncAsync(Game game)
     {
         var state = OpState.Finished;
-        if (!game.IsRunning)
+        if (game.InstallState is not InstallState.Uninstalled)
         {
-            playniteApi.StartGame(game.Id);
+            await playniteApi.StartGameAsync(game);
             state = OpState.Queued;
         }
         return state;

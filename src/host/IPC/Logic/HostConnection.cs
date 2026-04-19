@@ -1,42 +1,74 @@
-﻿using Comms.Common.Implementation;
-using Comms.Common.Interface.Models;
-using Comms.Host.Interface;
-using ProtoBuf;
-using Satelight.Protos.Host;
-using System.IO;
 using System.IO.Pipes;
-using Comms.Host.Implementation.Services;
+using Comms.Common.Interface.Models;
+using Common.Utility.Models;
+using Comms.Common.Implementation.Services;
+using Comms.Host.Interface;
 using Comms.Host.Interface.Models;
+using Satelight.Protos.Core;
+using Satelight.Protos.Host;
 using Piped;
 using RequestType = Piped.RequestType;
+using Google.Protobuf;
 
 namespace Comms.Host.Implementation;
 
-public class HostConnection(NamedPipeServerStream stream) : SatelightConnection(stream), IHostConnection
+public sealed class HostConnection(NamedPipeServerStream stream) : IHostConnection
 {
-    private readonly HostModelMapper  _mapper = new();
+    private readonly ModelMapper _mapper = new();
 
-    protected override SatelightRequest Map(RequestType type, MemoryStream paramStream) => type switch
+    public void Dispose() => stream.Dispose();
+
+    public ValueTask DisposeAsync() => stream.DisposeAsync();
+
+    public async Task<SatelightRequest> ReadRequestAsync(CancellationToken token)
     {
-        RequestType.GetGameCover      => _mapper.Map(Serializer.Deserialize     <GetGameCoversBody>(paramStream)),
-        RequestType.GetGameBackground => _mapper.Map(Serializer.Deserialize<GetGameBackgroundsBody>(paramStream)),
-        RequestType.GetGame           => _mapper.Map(Serializer.Deserialize           <GetGameBody>(paramStream)),
-        RequestType.StreamGames       => _mapper.Map(Serializer.Deserialize       <StreamGamesBody>(paramStream)),
-        RequestType.CountGames        => _mapper.Map(Serializer.Deserialize        <CountGamesBody>(paramStream)),
-        RequestType.StartGame         => _mapper.Map(Serializer.Deserialize         <StartGameBody>(paramStream)),
-        RequestType.StopGame          => _mapper.Map(Serializer.Deserialize          <StopGameBody>(paramStream)),
-        RequestType.InstallGame       => _mapper.Map(Serializer.Deserialize       <InstallGameBody>(paramStream)),
-        RequestType.UninstallGame     => _mapper.Map(Serializer.Deserialize     <UninstallGameBody>(paramStream)),
-        RequestType.UpdateGame        => _mapper.Map(Serializer.Deserialize        <UpdateGameBody>(paramStream)),
-        RequestType.RemoveGame        => _mapper.Map(Serializer.Deserialize        <RemoveGameBody>(paramStream)),
-        RequestType.RepairGame        => _mapper.Map(Serializer.Deserialize        <RepairGameBody>(paramStream)),
-        RequestType.MoveGame          => _mapper.Map(Serializer.Deserialize          <MoveGameBody>(paramStream)),
-        RequestType.UpdateGameCover   => _mapper.Map(Serializer.Deserialize       <UpdateCoverBody>(paramStream)),
-        RequestType.UpdateGameBackground => _mapper.Map(Serializer.Deserialize<UpdateBackgroundBody>(paramStream)),
-        _                             =>   base.Map(type, paramStream)
+        var buffer = new byte[1024];
+        var bytesRead = await stream.ReadAsync(buffer, token);
+        var request = Body.Parser.ParseFrom(buffer, 0, bytesRead);
+        using MemoryStream paramStream = new(request.Parameters.ToByteArray());
+        return MapRequest(request.Type, paramStream);
+    }
+
+    private SatelightRequest MapRequest(RequestType type, MemoryStream paramStream) => type switch
+    {
+        RequestType.GetGameCover         => _mapper.Map(GetGameCoversBody.Parser.ParseFrom(paramStream)),
+        RequestType.GetGameBackground    => _mapper.Map(GetGameBackgroundsBody.Parser.ParseFrom(paramStream)),
+        RequestType.GetGame              => _mapper.Map(GetGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.StreamGames          => _mapper.Map(StreamGamesBody.Parser.ParseFrom(paramStream)),
+        RequestType.CountGames           => _mapper.Map(CountGamesBody.Parser.ParseFrom(paramStream)),
+        RequestType.StartGame            => _mapper.Map(StartGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.StopGame             => _mapper.Map(StopGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.InstallGame          => _mapper.Map(InstallGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.UninstallGame        => _mapper.Map(UninstallGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.UpdateGame           => _mapper.Map(UpdateGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.RemoveGame           => _mapper.Map(RemoveGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.RepairGame           => _mapper.Map(RepairGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.MoveGame             => _mapper.Map(MoveGameBody.Parser.ParseFrom(paramStream)),
+        RequestType.UpdateGameCover      => _mapper.Map(UpdateCoverBody.Parser.ParseFrom(paramStream)),
+        RequestType.UpdateGameBackground => _mapper.Map(UpdateBackgroundBody.Parser.ParseFrom(paramStream)),
+        RequestType.Init                 => _mapper.Map(InitBody.Parser.ParseFrom(paramStream)),
+        RequestType.GetCache             => _mapper.Map(GetCacheBody.Parser.ParseFrom(paramStream)),
+        RequestType.GetOp                => _mapper.Map(GetOpBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListOps              => _mapper.Map(ListOpsBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListTags             => _mapper.Map(ListTagsBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListPlatforms        => _mapper.Map(ListPlatformsBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListGenres           => _mapper.Map(ListGenresBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListLibraries        => _mapper.Map(ListLibrariesBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListSeries           => _mapper.Map(ListSeriesBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListFeatures         => _mapper.Map(ListFeaturesBody.Parser.ParseFrom(paramStream)),
+        RequestType.ListCompanies        => _mapper.Map(ListCompaniesBody.Parser.ParseFrom(paramStream)),
+        _                                => throw new ArgumentOutOfRangeException()
     };
 
-    protected override object Map<T>(T response) => response switch
+    public async Task SendResponseAsync<T>(T response, CancellationToken token) where T : SatelightResponse
+    {
+        var reply = MapResponse(response).ToByteArray();
+        if (response is StreamGamesResponse)
+            await stream.WriteAsync(BitConverter.GetBytes(reply.Length), 0, 4, token);
+        await stream.WriteAsync(reply, 0, reply.Length, token);
+    }
+
+    private IMessage MapResponse<T>(T response) where T : SatelightResponse => response switch
     {
         GetGameCoverResponse           getGameCoverResponse => _mapper.Map     (getGameCoverResponse),
         GetGameBackgroundResponse getGameBackgroundResponse => _mapper.Map(getGameBackgroundResponse),
@@ -52,7 +84,20 @@ public class HostConnection(NamedPipeServerStream stream) : SatelightConnection(
         RepairGameResponse               repairGameResponse => _mapper.Map       (repairGameResponse),
         MoveGameResponse                   moveGameResponse => _mapper.Map         (moveGameResponse),
         UpdateCoverResponse             updateCoverResponse => _mapper.Map      (updateCoverResponse),
-        UpdateBackgroundResponse   updateBackgroundResponse => _mapper.Map(updateBackgroundResponse),
-        _                                                   =>   base.Map                 (response)
+        UpdateBackgroundResponse   updateBackgroundResponse => _mapper.Map (updateBackgroundResponse),
+        InitializeResponse                     initResponse => _mapper.Map             (initResponse),
+        GetCacheResponse                   getCacheResponse => _mapper.Map         (getCacheResponse),
+        GetOpResponse                         getOpResponse => _mapper.Map            (getOpResponse),
+        GetOpsResponse                       getOpsResponse => _mapper.Map           (getOpsResponse),
+        GetTagsResponse                     getTagsResponse => _mapper.Map          (getTagsResponse),
+        GetPlatformsResponse           getPlatformsResponse => _mapper.Map     (getPlatformsResponse),
+        GetGenresResponse                 getGenresResponse => _mapper.Map        (getGenresResponse),
+        GetLibrariesResponse           getLibrariesResponse => _mapper.Map     (getLibrariesResponse),
+        GetSeriesResponse                 getSeriesResponse => _mapper.Map        (getSeriesResponse),
+        GetFeaturesResponse             getFeaturesResponse => _mapper.Map      (getFeaturesResponse),
+        GetCompaniesResponse           getCompaniesResponse => _mapper.Map     (getCompaniesResponse),
+        _                                                   => throw new ArgumentOutOfRangeException()
     };
+
+    public Conditional IsConnected { get; } = new FuncConditional(() => stream.IsConnected);
 }

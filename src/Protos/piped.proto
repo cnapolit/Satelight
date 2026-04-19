@@ -16,14 +16,14 @@ message InitReply {
 }
 
 message GetGameCoversBody {
-    bytes Id = 1;
+    string GameId = 1;
 }
 message GetGameCoversReply {
     repeated string Covers = 1;
 }
 
 message GetGameBackgroundsBody {
-    bytes Id = 1;
+    string GameId = 1;
 }
 message GetGameBackgroundsReply {
     repeated string Backgrounds = 1;

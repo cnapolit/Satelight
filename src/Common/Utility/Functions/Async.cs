@@ -1,9 +1,3 @@
-#if NET5_0_OR_GREATER
-#else
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-#endif
 namespace Common.Utility.Functions;
 
 public static class Async

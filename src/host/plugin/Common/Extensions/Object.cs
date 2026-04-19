@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using Playnite;
 using System.Reflection;
 using System.Text.Json;
 

@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.34.0" />
-    <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
-    <PackageReference Include="Grpc.AspNetCore.Web" Version="2.71.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.34.1" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
+    <PackageReference Include="Grpc.AspNetCore.Web" Version="2.76.0" />
     <PackageReference Include="Grpc.Tools" Version="2.76.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\Utility.Core\Utility.Core.csproj" />
+    <ProjectReference Include="..\..\Common\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

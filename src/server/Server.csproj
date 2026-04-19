@@ -13,7 +13,7 @@
     <PackageReference Include="Blazorise.Bootstrap5" Version="2.0.2" />
     <PackageReference Include="Blazorise.Components" Version="2.0.2" />
     <PackageReference Include="Blazorise.Icons.FontAwesome" Version="2.0.2" />
-    <PackageReference Include="Google.Protobuf" Version="3.34.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.34.1" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
     <PackageReference Include="Grpc.AspNetCore.Web" Version="2.76.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.QuickGrid" Version="8.0.23" />
@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\Utility.Core\Utility.Core.csproj" />
+    <ProjectReference Include="..\Common\Utility\Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

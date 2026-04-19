@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Comms.Common.Interface.Models;
+﻿namespace Comms.Common.Interface.Models;
 
 public class IdRequest : SatelightRequest
 {

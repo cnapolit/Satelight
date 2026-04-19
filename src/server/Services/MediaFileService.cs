@@ -28,37 +28,37 @@ public class MediaFileService(
     private static readonly string NoLogosCoversDir = Path.Combine(CoversDir, NoLogosDir);
 
     private static string GetHostUrl(Models.Database.Host host) => $"https://{host.Ip}:{host.Port}";
-    private static string GetHostGameUrl(Models.Database.Host host, Guid hostGameId) => $"{GetHostUrl(host)}/games/{hostGameId}";
-    private static string GetHostCoverUrl(Models.Database.Host host, Guid hostGameId) => $"{GetHostGameUrl(host, hostGameId)}/covers";
-    private static string GetHostBackgroundUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostGameUrl(Models.Database.Host host, string hostGameId) => $"{GetHostUrl(host)}/games/{hostGameId}";
+    private static string GetHostCoverUrl(Models.Database.Host host, string hostGameId) => $"{GetHostGameUrl(host, hostGameId)}/covers";
+    private static string GetHostBackgroundUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/backgrounds";
-    private static string GetHostScreenshotUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostScreenshotUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/screenshots";
-    private static string GetHostTrailerUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostTrailerUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/trailer";
-    private static string GetHostMicroTrailerUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostMicroTrailerUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/microTrailer";
-    private static string GetHostMusicUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostMusicUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/music";
-    private static string GetHostLogoUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostLogoUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/logo";
-    private static string GetHostIconUrl(Models.Database.Host host, Guid hostGameId)
+    private static string GetHostIconUrl(Models.Database.Host host, string hostGameId)
         => $"{GetHostGameUrl(host, hostGameId)}/icon";
 
-    public Task DownloadCoverAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public Task DownloadCoverAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadImagesAsync(host, hostGameId, gameId, GetHostCoverUrl(host, hostGameId), GetCoverPath(gameId), LogosCoversDir, token);
-    public Task DownloadBackgroundAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public Task DownloadBackgroundAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadImagesAsync(host, hostGameId, gameId, GetHostBackgroundUrl(host, hostGameId), GetBackgroundPath(gameId), BackgroundsDir, token);
-    public ValueTask DownloadTrailerAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public ValueTask DownloadTrailerAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadTrailerAsync(gameId, GetHostTrailerUrl(host, hostGameId), "Trailer.mp4", token);
-    public ValueTask DownloadMicroTrailerAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public ValueTask DownloadMicroTrailerAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadTrailerAsync(gameId, GetHostMicroTrailerUrl(host, hostGameId), "MicroTrailer.mp4", token);
-    public ValueTask DownloadLogoAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public ValueTask DownloadLogoAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadFileAsync(GetHostLogoUrl(host, hostGameId), GetLogoPath(gameId), "Logo.png", token);
-    public ValueTask DownloadIconAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public ValueTask DownloadIconAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
         => DownloadFileAsync(GetHostIconUrl(host, hostGameId), GetIconPath(gameId), "Icon.ico", token);
 
-    public async Task DownloadMusicAsync(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token)
+    public async Task DownloadMusicAsync(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token)
     {
         var url = GetHostMusicUrl(host, hostGameId);
         var httpClient = httpClientFactory.CreateClient("DefaultClient");
@@ -140,7 +140,7 @@ public class MediaFileService(
 
     private async Task DownloadImagesAsync(
         Models.Database.Host host,
-        Guid hostGameId,
+        string hostGameId,
         Guid gameId,
         string url,
         string imageDir,
@@ -166,7 +166,7 @@ public class MediaFileService(
         {
             UpdateFileInfo = new()
             {
-                Game = hostGameId.ToByteString(),
+                Game = hostGameId,
                 FileName = Path.GetFileName(file),
                 NewPath = GetFile(gameId, serverSubPath)
             }

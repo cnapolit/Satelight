@@ -1,20 +1,20 @@
 ﻿using Comms.Common.Interface.Models;
 using Comms.Host.Interface.Models;
-using Playnite.SDK;
-using Game = Playnite.SDK.Models.Game;
+using Playnite;
+using Game = Playnite.Game;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class UninstallGameHandler(IPlayniteAPI playniteApi, IActionTracker actionTracker, IGetGamesService getGamesService)
-    : GameActionRequestHandler<UninstallGameRequest, UninstallGameResponse>(actionTracker, getGamesService)
+public class UninstallGameHandler(IPlayniteApi playniteApi, IActionTracker actionTracker, ILibraryApi libraryApi)
+    : GameActionRequestHandler<UninstallGameRequest, UninstallGameResponse>(actionTracker, libraryApi)
 {
     protected override RequestType RequestType => RequestType.InstallGame;
-    protected override OpState Func(Game game)
+    protected override async ValueTask<OpState> FuncAsync(Game game)
     {
         var state = OpState.Finished;
-        if (game.IsInstalled)
+        if (game.InstallState is InstallState.Installed)
         {
-            playniteApi.InstallGame(game.Id);
+            await playniteApi.UninstallGameAsync(game);
             state = OpState.Running;
         }
         return state;

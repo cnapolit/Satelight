@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Comms.Common.Interface.Models;
+﻿using Comms.Common.Interface.Models;
 
 namespace Comms.Host.Interface.Models;
 

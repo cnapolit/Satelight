@@ -1,12 +1,10 @@
-﻿using Common.Utility.Extensions;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Piped;
 using Service.Common;
 using Service.Common.Extensions;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using Google.Protobuf;
 using Service.Models;
 using Google.Protobuf.Collections;
 
@@ -31,7 +29,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
 
 
     [HttpGet("Covers")]
-    public async Task<IActionResult> GetCoversAsync(Guid gameId, CancellationToken token)
+    public async Task<IActionResult> GetCoversAsync(string gameId, CancellationToken token)
     {
         var gameCover = await GetGameCoverAsync(gameId, token);
         if (gameCover is null) return NotFound($"Game files for Id '{gameId}' do not exist");
@@ -58,7 +56,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     }
 
     [HttpGet("Covers/{fileName:file}")]
-    public async Task<IActionResult> GetCoverAsync(Guid gameId, string fileName, CancellationToken token)
+    public async Task<IActionResult> GetCoverAsync(string gameId, string fileName, CancellationToken token)
     {
         var gameCovers = await GetGameCoverAsync(gameId, token);
         switch (gameCovers)
@@ -78,45 +76,45 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
         return NotFound();
     }
 
-    private Task<RepeatedField<string>?> GetGameCoverAsync(Guid gameId, CancellationToken token)
+    private Task<RepeatedField<string>?> GetGameCoverAsync(string gameId, CancellationToken token)
         => GetPlayniteImagesAsync(gameId, GetPlayniteCoverAsync, token);
-    private async Task<RepeatedField<string>> GetPlayniteCoverAsync(ByteString gameId, CancellationToken token)
+    private async Task<RepeatedField<string>> GetPlayniteCoverAsync(string gameId, CancellationToken token)
     {
-        GetGameCoversBody getGameCoverRequest = new() { Id = gameId };
+        GetGameCoversBody getGameCoverRequest = new() { GameId = gameId };
         var reply = await Pipe.SendRequestAsync(
             logger, RequestType.GetGameCover, getGameCoverRequest, GetGameCoversReply.Parser, token);
         return reply.Covers;
     }
 
-    private Task<RepeatedField<string>?> GetGameBackgroundAsync(Guid gameId, CancellationToken token)
+    private Task<RepeatedField<string>?> GetGameBackgroundAsync(string gameId, CancellationToken token)
         => GetPlayniteImagesAsync(gameId, GetPlayniteBackgroundAsync, token);
 
-    private async Task<RepeatedField<string>> GetPlayniteBackgroundAsync(ByteString gameId, CancellationToken token)
+    private async Task<RepeatedField<string>> GetPlayniteBackgroundAsync(string gameId, CancellationToken token)
     {
-        GetGameBackgroundsBody getGameBackgroundRequest = new() { Id = gameId };
+        GetGameBackgroundsBody getGameBackgroundRequest = new() { GameId = gameId };
         var reply = await Pipe.SendRequestAsync(
             logger, RequestType.GetGameBackground, getGameBackgroundRequest, GetGameBackgroundsReply.Parser, token);
         return reply.Backgrounds;
     }
 
     private async Task<RepeatedField<string>?> GetPlayniteImagesAsync(
-        Guid gameId, Func<ByteString, CancellationToken, Task<RepeatedField<string>>> getImagesFunc, CancellationToken token)
+        string gameId, Func<string, CancellationToken, Task<RepeatedField<string>>> getImagesFunc, CancellationToken token)
     {
         var gamePath = GetGameLibraryPath(gameId);
         if (!Directory.Exists(gamePath)) return null;
 
-        return await getImagesFunc(gameId.ToByteString(), token);
+        return await getImagesFunc(gameId, token);
         //if (id.IsEmpty) return string.Empty;
 
         //var backgroundId = id.ToGuid().ToString();
         //return Directory.GetFiles(gamePath).First(f => Path.GetFileName(f).StartsWith(backgroundId));
     }
 
-    private string GetGameLibraryPath(Guid gameId)
+    private string GetGameLibraryPath(string gameId)
         => Path.Combine(options.Value.PlayniteRootPath, LibraryFilesPath, gameId.ToString());
 
     private async IAsyncEnumerable<string> GetBackgroundChangerImagesAsync(
-        Guid gameId, bool expectsCover, [EnumeratorCancellation] CancellationToken token)
+        string gameId, bool expectsCover, [EnumeratorCancellation] CancellationToken token)
     {
         var gameIdStr = gameId.ToString();
         if      (TryGetFile(out var jsonPath, options.Value.PlayniteRootPath, BackgroundChangerJsonPath, $"{gameIdStr}.json")
@@ -134,7 +132,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     }
 
     [HttpGet("Backgrounds")]
-    public async Task<IActionResult> GetBackgroundsAsync(Guid gameId, CancellationToken token)
+    public async Task<IActionResult> GetBackgroundsAsync(string gameId, CancellationToken token)
     {
         List<string> files = [];
         var background = await GetGameBackgroundAsync(gameId, token);
@@ -160,7 +158,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     }
 
     [HttpGet("Backgrounds/{fileName:file}")]
-    public async Task<IActionResult> GetBackgroundAsync(Guid gameId, string fileName, CancellationToken token)
+    public async Task<IActionResult> GetBackgroundAsync(string gameId, string fileName, CancellationToken token)
     {
         var background = await GetGameBackgroundAsync(gameId, token);
         switch (background)
@@ -182,7 +180,7 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     }
 
     [HttpGet("Icon")]
-    public IActionResult GetIcon(Guid gameId)
+    public IActionResult GetIcon(string gameId)
     {
         var libraryPath = GetGameLibraryPath(gameId);
         if (Directory.Exists(libraryPath))
@@ -197,38 +195,38 @@ public class GameMediaController(ILogger<GameMediaController> logger, IOptions<M
     }
 
     [HttpGet("Trailer")]
-    public IActionResult GetTrailer(Guid gameId) => GetExtraMetadataFile(gameId, "Trailer.mp4", "video/mp4");
+    public IActionResult GetTrailer(string gameId) => GetExtraMetadataFile(gameId, "Trailer.mp4", "video/mp4");
 
     [HttpGet("MicroTrailer")]
-    public IActionResult GetMicroTrailer(Guid gameId) => GetExtraMetadataFile(gameId, "MicroTrailer.mp4", "video/mp4");
+    public IActionResult GetMicroTrailer(string gameId) => GetExtraMetadataFile(gameId, "MicroTrailer.mp4", "video/mp4");
 
     [HttpGet("Logo")]
-    public IActionResult GetLogo(Guid gameId) => GetExtraMetadataFile(gameId, "Logo.png", "image/png");
+    public IActionResult GetLogo(string gameId) => GetExtraMetadataFile(gameId, "Logo.png", "image/png");
 
-    private IActionResult GetExtraMetadataFile(Guid gameId, string fileName, string mimeType)
+    private IActionResult GetExtraMetadataFile(string gameId, string fileName, string mimeType)
         => TryGetFile(out var filePath, options.Value.PlayniteRootPath, GetExtraMetadataGamePath(gameId), fileName)
          ? PhysicalFile(filePath, mimeType)
          : NotFound();
 
     [HttpGet("Music")]
-    public IActionResult GetMusic(Guid gameId)
+    public IActionResult GetMusic(string gameId)
     {
         var filePath = GetGameMusicPath(gameId);
         return Directory.Exists(filePath) ? Ok(Directory.GetFiles(filePath)) : NotFound();
     }
 
-    private static string GetGameMusicPath(Guid gameId)
+    private static string GetGameMusicPath(string gameId)
         => Path.Combine(GetExtraMetadataGamePath(gameId), MusicFolder);
 
-    private static string GetExtraMetadataGamePath(Guid gameId)
+    private static string GetExtraMetadataGamePath(string gameId)
         => Path.Combine(ExtraMetadataGamePath, gameId.ToString());
 
     [HttpGet("Music/{fileName:file}")]
-    public IActionResult GetMusic(Guid gameId, string fileName)
+    public IActionResult GetMusic(string gameId, string fileName)
         => GetAbsFile(GetGameMusicPath(gameId), fileName);
 
     [HttpGet("Audio")]
-    public IActionResult GetAudio(Guid gameId)
+    public IActionResult GetAudio(string gameId)
     {
         throw new NotImplementedException();
     }

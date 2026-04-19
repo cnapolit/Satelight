@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Comms.Common.Interface.Models;
+﻿namespace Comms.Common.Interface.Models;
 
 public class GetCacheResponse : SatelightResponse
 {

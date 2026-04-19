@@ -4,7 +4,6 @@ public enum OperationType
 {
     None,
     StartGame,
-    MonitorGame,
     StopGame,
     InstallGame,
     UninstallGame,

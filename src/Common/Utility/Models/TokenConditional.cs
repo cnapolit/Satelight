@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace Common.Utility.Models;
+﻿namespace Common.Utility.Models;
 
 public class TokenConditional(CancellationToken token) : Conditional
 {

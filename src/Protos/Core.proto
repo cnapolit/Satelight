@@ -82,7 +82,7 @@ message ListLibrariesReply {
 }
 
 message Label {
-    bytes Id = 1;
+    string Id = 1;
     string Name = 2;
 }
 
@@ -115,31 +115,31 @@ enum OpState {
     Finished = 4;
     Failed   = 5;
 }
+
 enum OpType {
     None          =  0;
     StartGame     =  1;
-    MonitorGame   =  2;
-    StopGame      =  3;
-    InstallGame   =  4;
-    UninstallGame =  5;
-    UpdateGame    =  6;
-    RemoveGame    =  7;
-    RepairGame    =  8;
-    MoveGame      =  9;
-    SleepHost     = 10;
-    PowerOffHost  = 11;
-    PowerOnHost   = 12;
-    UpdateHost    = 13;
-    UpdateLibrary = 14;
+    StopGame      =  2;
+    InstallGame   =  3;
+    UninstallGame =  4;
+    UpdateGame    =  5;
+    RemoveGame    =  6;
+    RepairGame    =  7;
+    MoveGame      =  8;
+    SleepHost     =  9;
+    PowerOffHost  = 10;
+    PowerOnHost   = 11;
+    UpdateHost    = 12;
+    UpdateLibrary = 13;
 }
 message OpInfo {
-    OpState State  = 1;
-    int32 Progress = 2;
-    string Host    = 3;
-    OpType Type    = 4;
-    bytes TargetId = 5;
+    OpState State     = 1;
+    int32   Progress  = 2;
+    string  Host      = 3;
+    OpType  Type      = 4;
+    string  TargetId  = 5;
 }
 message Op {
-    bytes Id      = 1;
-    OpInfo Info   = 2;
+    bytes Id    = 1;
+    OpInfo Info = 2;
 }

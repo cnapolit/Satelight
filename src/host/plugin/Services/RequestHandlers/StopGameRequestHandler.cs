@@ -1,32 +1,28 @@
 ﻿using Comms.Common.Interface.Models;
+using Comms.Host.Interface;
 using Comms.Host.Interface.Models;
-using HostPlugin.Services;
-using Playnite.SDK;
-using System;
+using Playnite;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using Comms.Common.Interface;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class StopGameRequestHandler(IActionTracker actionTracker, IGetGamesService getGamesService) : IStopGameRequestHandler
+public class StopGameRequestHandler(IActionTracker actionTracker, ILibraryApi libraryApi) : IStopGameRequestHandler
 {
-    public async Task HandleRequestAsync(StopGameRequest request, ISatelightConnection connection, CancellationToken token)
+    public async Task HandleRequestAsync(StopGameRequest request, IHostConnection connection, CancellationToken token)
     {
         try
         {
-            var game = getGamesService.GetGame(request);
+            var game = libraryApi.Games.Get(request.Id) ?? throw new ArgumentException($"Game {request.Id} does not exist");
             var op = actionTracker.AddOp(game.Id, RequestType.StopGame);
 
-            if (!game.IsRunning)
+            if (game.InstallState is not InstallState.Uninstalled)
             {
                 op.State = OpState.Finished;
                 await SendStopResponseAsync(connection, op, token);
                 return;
             }
 
-            using var process = Process.Start("playnite://NowPlaying/" + game.GameId);
+            using var process = Process.Start("playnite://NowPlaying/" + game.Id);
             if (process is null)
             {
                 op.State = OpState.Failed;
@@ -44,8 +40,8 @@ public class StopGameRequestHandler(IActionTracker actionTracker, IGetGamesServi
 
             if (op.State is not (OpState.Failed or OpState.Finished))
             {
-                game = getGamesService.GetGame(request);
-                op.State = game.IsRunning ? OpState.Failed : OpState.Finished;
+                //game = getGamesService.GetGame(request);
+                //op.State = game.IsRunning ? OpState.Failed : OpState.Finished;
             }
 
             if (!process.HasExited)
@@ -60,6 +56,6 @@ public class StopGameRequestHandler(IActionTracker actionTracker, IGetGamesServi
         }
     }
 
-    private static Task SendStopResponseAsync(ISatelightConnection connection, Op op, CancellationToken token)
+    private static Task SendStopResponseAsync(IHostConnection connection, Op op, CancellationToken token)
         => connection.SendResponseAsync(new StopGameResponse { Op = op }, token);
 }

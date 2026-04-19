@@ -1,12 +1,16 @@
-﻿using System.IO.Pipes;
-using Comms.Common.Implementation;
+using System.IO.Pipes;
 using Comms.Host.Interface;
 
 namespace Comms.Host.Implementation;
 
-public class HostListener : SatelightListener<IHostConnection>, IHostListener
+public class HostListener : IHostListener
 {
-    protected override string PipeName => "SatelightHost";
+    public void Dispose() { }
 
-    protected override IHostConnection CreateConnection(NamedPipeServerStream stream) => new HostConnection(stream);
+    public async Task<IHostConnection> WaitForConnectionAsync(CancellationToken token)
+    {
+        NamedPipeServerStream stream = new("SatelightHost", PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances);
+        await stream.WaitForConnectionAsync(token);
+        return new HostConnection(stream);
+    }
 }

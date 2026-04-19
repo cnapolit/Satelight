@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace HostPlugin.Models;
+﻿namespace HostPlugin.Models;
 
 public class Host
 {

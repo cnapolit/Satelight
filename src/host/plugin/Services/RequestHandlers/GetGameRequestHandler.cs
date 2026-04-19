@@ -1,11 +1,13 @@
 ﻿using Comms.Common.Interface.Models;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
 internal class GetGameRequestHandler(IGetGamesService getGamesService) : RequestHandler<GetGameRequest>
 {
     public override async ValueTask<SatelightResponse> HandleAsync(GetGameRequest getGameRequest, CancellationToken _)
-        => new GetGameResponse { Game = getGamesService.GetGame(getGameRequest) };
+    {
+        var game = getGamesService.GetGame(getGameRequest)
+                ?? throw new ArgumentException($"Game {getGameRequest.Id} not found");
+        return new GetGameResponse { Game = game };
+    }
 }

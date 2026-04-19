@@ -80,7 +80,7 @@ service Media {
 }
 
 message UpdateFileInfo {
-    bytes  Game     = 1;
+    string Game     = 1;
     string fileName = 2;
     string NewPath  = 3;
 }
@@ -142,38 +142,36 @@ service Games {
 }
 
 message GetGameBody {
-    bytes GameId = 1;
-    string Library = 2;
-    string LibraryGameId = 3;
+    string GameId = 1;
 }
 message GetGameReply {
     Game Game = 1;
 }
 
 message CountGamesBody {
-    optional bytes filter  = 1;
-    optional bytes Source  = 2;
-    optional bytes Library = 3;
+    optional bytes filter   = 1;
+    optional string Source  = 2;
+    optional string Library = 3;
 }
 message CountGamesReply {
     int32 Count = 1;
 }
 
 message StreamGamesBody {
-    optional bytes filter  = 1;
-    optional bytes Source  = 2;
-    optional bytes Library = 3;
+    optional bytes filter   = 1;
+    optional string Source  = 2;
+    optional string Library = 3;
 }
 
 message UpdateGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message UpdateGameReply {
     core.Op Op = 1;
 }
 
 message InstallGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
     string Location = 2;
 }
 message InstallGameReply {
@@ -181,91 +179,85 @@ message InstallGameReply {
 }
 
 message UninstallGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message UninstallGameReply {
     core.Op Op = 1;
 }
 
 message RemoveGameBody {
-    bytes GameId = 1;
+    string GameId = 1;
 }
 message RemoveGameReply {
     core.Result Result = 1;
 }
 
 message RepairGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message RepairGameReply {
     core.Op Op = 1;
 }
 
 message StartGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message StartGameReply {
     core.Op Op = 1;
 }
 
 message StopGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message StopGameReply {
     core.Op Op = 1;
 }
 
 message MoveGameBody {
-    GameIdentifier GameIdentifier = 1;
+    string GameId = 1;
 }
 message MoveGameReply {
     core.Op Op = 1;
 }
 
-message GameIdentifier {
-    bytes AccountId = 1;
-    bytes LibraryId = 2;
-    bytes        Id = 4;
-}
-
 message Game {
-             bytes    Id          =  1;
+             string   Id          =  1;
              string   Name        =  4;
              string   Description =  5;
-    repeated bytes    Genres      =  6;
+    repeated string   Genres      =  6;
     repeated HostGame HostGames   =  7;
              string   SortingName =  8;
     repeated string   Series      =  9;
 }
 
 message UserGameInfo {
-             bytes UserId           =  1;
-             bytes GameId           =  2;
-             bool  Favorite         =  3;
-    optional int64 LastPlayed       =  4;
-    optional int64 TimePlayed       =  5;
-    optional int32 Score            =  6;
-             bytes CompletionStatus =  7;
-    optional string Notes           =  8;
-             int64 PlayCount        =  9;
-    repeated bytes Categories       = 10;
+             bytes  UserId           =  1;
+             string GameId           =  2;
+             bool   Favorite         =  3;
+    optional int64  LastPlayed       =  4;
+    optional int64  TimePlayed       =  5;
+    optional int32  Score            =  6;
+             string CompletionStatus =  7;
+    optional string Notes            =  8;
+             int64  PlayCount        =  9;
+    repeated string Categories       = 10;
 }
 
 message HostGame {
-             bytes        Id           =  1;
-             bytes        Library      =  2;
-             string       LibraryGameId = 3;
-             bool         Installed    =  4;
-             bool         Playing      =  5;
-             string       Name         =  6;
-             string       Description  =  7;
-    optional int64        ReleaseDate  =  8;
-    repeated string       PlayActions  =  9;
-    optional int64        Size         = 10;
-    repeated bytes        Platforms    = 11;
-    repeated bytes        Features     = 12;
-    repeated bytes        Publishers   = 13;
-    repeated bytes        Developers   = 14;
-    repeated bytes        Tags         = 15;
-    repeated UserGameInfo UserGameInfo = 16;
+             string       Id            =  1;
+             string       Library       =  2;
+             string       LibraryGameId =  3;
+             bool         Installed     =  4;
+             bool         Playing       =  5;
+             string       Name          =  6;
+             string       Description   =  7;
+    optional int64        ReleaseDate   =  8;
+    repeated string       PlayActions   =  9;
+    optional int64        Size          = 10;
+    repeated string       Platforms     = 11;
+    repeated string       Features      = 12;
+    repeated string       Publishers    = 13;
+    repeated string       Developers    = 14;
+    repeated string       Tags          = 15;
+    repeated UserGameInfo UserGameInfo  = 16;
 }

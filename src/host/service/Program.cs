@@ -11,7 +11,7 @@ while (true)
     reply = await Pipe.SendRequestAsync(RequestType.Init, new InitBody(), InitReply.Parser, CancellationToken.None);
     path = reply.DataPath;
     if (!string.IsNullOrEmpty(path)) break;
-    if (attempts++ > 5) throw new ApplicationException("Failed to get Playnite path from host.");
+    if (attempts++ > 10) throw new ApplicationException("Failed to get Playnite path from host.");
 
     await Task.Delay(1000);
 }

@@ -1,10 +1,6 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace HostPlugin.Services;
 
-public interface IServer : IDisposable
+public interface IServer : IAsyncDisposable
 {
     void Run(CancellationToken token);
     Task RunAsync(CancellationToken token);

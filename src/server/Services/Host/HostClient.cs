@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Net.NetworkInformation;
-using Common.Utility.Extensions;
+﻿using Common.Utility.Extensions;
 using Common.Utility.Functions;
 using Google.Protobuf;
 using Google.Protobuf.Collections;
@@ -11,8 +9,9 @@ using Satelight.Protos.Host;
 using Server.Database;
 using Server.Models.Database;
 using Server.Models.Events;
-using Server.Models.Host;
 using Server.Services.Protos;
+using System.Net;
+using System.Net.NetworkInformation;
 using HostGame = Server.Models.Database.HostGame;
 using Series = Satelight.Protos.Core.Series;
 
@@ -41,7 +40,6 @@ public class HostClient(
         var completionStatus = await databaseContext.CompletionStatuses.FirstAsync(token);
 
         List<Task> mediaDownloadTasks = [];
-        Dictionary<Guid, Cache> hostCaches = [];
         await hosts.ForEachAsync(async h =>
         {
             var channel = channelManager.GetChannel(h);
@@ -69,23 +67,12 @@ public class HostClient(
             await UpdateNamedObjectsAsync(databaseContext.Libraries, librariesReply.Labels, token);
             await databaseContext.SaveChangesAsync(token);
             stepProgressCallback(stepProgress++, hosts.Count);
-            hostCaches[h.Id] = new()
-            {
-                Genres    = cache.Genres,
-                Tags      = cache.Tags,
-                Platforms = cache.Platforms,
-                Features  = featuresReply.Labels,
-                Companies = companiesReply.Labels,
-                Series    = seriesReply.Labels,
-                Libraries = librariesReply.Labels
-            };
         });
 
         var defaultGameVariantType = await databaseContext.GameVariantTypes.FirstAsync(
             v => v.GameVariantFlags.HasFlag(GameVariantFlags.Default), token);
         foreach (var host in hosts) try
         {
-            var cache = hostCaches[host.Id];
             var channel = channelManager.GetChannel(host);
             Games.GamesClient gamesClient = new(channel);
             var gamesCountReply = await gamesClient.CountAsync(new(), cancellationToken: token);
@@ -99,7 +86,6 @@ public class HostClient(
                 List<(Satelight.Protos.Host.HostGame, LibraryGame?, Library)> newHostGames = [];
                 foreach (var hostGame in protoGame.HostGames) try
                 {
-                    var hostGameId = hostGame.Id.ToGuid().ToString();
                     var databaseHostGame = await databaseContext
                         .HostGames
                         .Include    (h => h.LibraryGame)
@@ -107,27 +93,27 @@ public class HostClient(
                         .ThenInclude(v => v.Games)
                         .FirstOrDefaultAsync(
                             h => h.HostId     == host.Id 
-                              && h.HostGameId == hostGameId,
+                              && h.HostGameId == hostGame.Id,
                             cancellationToken: token);
                     if (databaseHostGame != null)
                     {
                         hostGames[databaseHostGame.Id] = databaseHostGame;
                         var game = databaseHostGame.LibraryGame.GameVariant.Games.First();
-                        mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGame.Id.ToGuid(), game.Id, token));
+                        mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGame.Id, game.Id, token));
                         continue;
                     }
 
                     Library library;
-                    if (hostGame.Library.IsEmpty)
+                    if (hostGame.Library is null)
                     {
                         library = await databaseContext.Libraries.FindAsync([Guid.Empty], cancellationToken: token)
                                     ?? throw new Exception("Default library not found");
                     }
                     else
                     {
-                        var libraryName = cache.Libraries.First(l => l.Id == hostGame.Library).Name;
-                        library = await databaseContext.Libraries.AsNoTracking().FirstAsync(
-                            l => l.Name == libraryName, cancellationToken: token);
+                        library = await databaseContext.Libraries.AsNoTracking().FirstOrDefaultAsync(
+                            l => l.Name == hostGame.Library, cancellationToken: token)
+                                    ?? throw new Exception($"Unknown library '{hostGame.Library}'");
                     }
 
                     var libraryGame = await databaseContext.LibraryGames.FirstOrDefaultAsync(
@@ -150,12 +136,11 @@ public class HostClient(
                     if (game is null)
                     {
                         var genres = await GetNamedDatabaseObjectsAsync(
-                            databaseContext.Genres, cache.Genres, protoGame.Genres, token);
+                            databaseContext.Genres, protoGame.Genres, token);
                         var series = await GetNamedDatabaseObjectsAsync(
-                            databaseContext.Series, cache.Series, protoGame.Series, token);
+                            databaseContext.Series, protoGame.Series, token);
                         var tags = await GetNamedDatabaseObjectsAsync(
                             databaseContext.Tags,
-                            cache.Tags,
                             protoGame.HostGames.SelectMany(h => h.Tags).Distinct(),
                             token);
                         game = databaseContext.Games.Add(new()
@@ -178,35 +163,31 @@ public class HostClient(
 
                     var features = await GetNamedDatabaseObjectsAsync(
                         databaseContext.Features,
-                        cache.Features,
                         protoGame.HostGames.SelectMany(h => h.Features).Distinct(),
                         token);
                     var developers = await GetNamedDatabaseObjectsAsync(
                         databaseContext.Companies,
-                        cache.Companies,
                         protoGame.HostGames.SelectMany(h => h.Developers).Distinct(),
                         token);
                     var publishers = await GetNamedDatabaseObjectsAsync(
                         databaseContext.Companies,
-                        cache.Companies,
                         protoGame.HostGames.SelectMany(h => h.Publishers).Distinct(),
                         token);
                     var platforms = await GetNamedDatabaseObjectsAsync(
                         databaseContext.Platforms,
-                        cache.Platforms,
                         protoGame.HostGames.SelectMany(h => h.Platforms).Distinct(),
                         token);
                     newGameVariant = await databaseContext.GamesVariants.FirstOrDefaultAsync(
                         g => g.Name == protoGame.Name, cancellationToken: token)
                                      ?? databaseContext.GamesVariants.Add(new()
                     {
-                        Games       = [game],
-                        Name        = protoGame.Name,
-                        Description = protoGame.Description,
-                        Features    = features,
-                        Developers  = developers,
-                        Publishers  = publishers,
-                        Platforms   = platforms,
+                        Games           = [game],
+                        Name            = protoGame.Name,
+                        Description     = protoGame.Description,
+                        Features        = features,
+                        Developers      = developers,
+                        Publishers      = publishers,
+                        Platforms       = platforms,
                         GameVariantType = defaultGameVariantType
 
                     }).Entity;
@@ -236,7 +217,7 @@ public class HostClient(
                     databaseContext.HostGames.Add(new()
                     {
                         HostId        = host.Id,
-                        HostGameId    = newHostGame.Id.ToGuid().ToString(),
+                        HostGameId    = newHostGame.Id,
                         LibraryGameId = addedLibraryGame.LibraryId,
                         Host          = host,
                         LibraryGame   = addedLibraryGame,
@@ -247,9 +228,8 @@ public class HostClient(
                         Version       = string.Empty
                     });
 
-                    var hostGameId = newHostGame.Id.ToGuid();
-                    var gameId     = newGameVariant.Games.First().Id;
-                    mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, hostGameId, gameId, token));
+                    var gameId = newGameVariant.Games.First().Id;
+                    mediaDownloadTasks.AddRange(CreateMediaDownloadTasks(host, newHostGame.Id, gameId, token));
                 }
             }
                     
@@ -270,7 +250,7 @@ public class HostClient(
         }
     }
 
-    private List<Task> CreateMediaDownloadTasks(Models.Database.Host host, Guid hostGameId, Guid gameId, CancellationToken token) =>
+    private List<Task> CreateMediaDownloadTasks(Models.Database.Host host, string hostGameId, Guid gameId, CancellationToken token) =>
     [
         mediaFileService.DownloadLogoAsync        (host, hostGameId, gameId, token).AsTask(),
         mediaFileService.DownloadIconAsync        (host, hostGameId, gameId, token).AsTask(),
@@ -316,20 +296,8 @@ public class HostClient(
     }
 
     private static Task<List<T>> GetNamedDatabaseObjectsAsync<T>(
-        DbSet<T> set, ICollection<Label> cache, IEnumerable<ByteString> ids, CancellationToken token) 
-        where T : NamedDatabaseObject
-    {
-        var genres = ids.Select(g => cache.First(cg => cg.Id == g).Name).ToList();
-        return set.Where(g => genres.Contains(g.Name)).ToListAsync(token);
-    }
-
-    private static Task<List<T>> GetNamedDatabaseObjectsAsync<T>(
-        DbSet<T> set, ICollection<Label> cache, IEnumerable<string> names, CancellationToken token)
-        where T : NamedDatabaseObject
-    {
-        var genres = names.Select(g => cache.First(cg => cg.Name == g).Name).ToList();
-        return set.Where(g => genres.Contains(g.Name)).ToListAsync(token);
-    }
+        DbSet<T> set, IEnumerable<string> names, CancellationToken token) where T : NamedDatabaseObject
+        => set.Where(g => names.Contains(g.Name)).ToListAsync(token);
 
     private static async Task<IPStatus> GetIpStatusAsync(string ip, CancellationToken token)
     {
@@ -453,15 +421,10 @@ public class HostClient(
         {
             try
             {
-                var hostGameIdByteStr = Guid.Parse(hostGame.HostGameId).ToByteString();
-                var reply = await gamesClient.GetAsync(new()
-                {
-                    GameId        = hostGameIdByteStr,
-                    Library       = hostGame.LibraryGame.Library.Name,
-                    LibraryGameId = hostGame.LibraryGame.Id.ToString()
-                }, cancellationToken: token);
+                var reply = await gamesClient.GetAsync(
+                    new() { GameId = hostGame.HostGameId, }, cancellationToken: token);
 
-                var protoHostGame = reply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGameIdByteStr);
+                var protoHostGame = reply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGame.HostGameId);
                 if (protoHostGame is null)
                 {
                     continue;
@@ -501,14 +464,10 @@ public class HostClient(
             var channel = channelManager.GetChannel(databaseHostGame.Host);
             Games.GamesClient gamesClient = new(channel);
             var hostGameIdByteStr = Guid.Parse(databaseHostGame.HostGameId).ToByteString();
-            var getGameReply = await gamesClient.GetAsync(new()
-            {
-                GameId = hostGameIdByteStr,
-                Library = databaseHostGame.LibraryGame.Library.Name,
-                LibraryGameId = databaseHostGame.LibraryGame.Id.ToString()
-            }, cancellationToken: cancellationToken);
+            var getGameReply = await gamesClient.GetAsync(
+                new() { GameId = databaseHostGame.HostGameId }, cancellationToken: cancellationToken);
 
-            var hostGame = getGameReply.Game?.HostGames?.FirstOrDefault(h => h.Id == hostGameIdByteStr);
+            var hostGame = getGameReply.Game?.HostGames?.FirstOrDefault(h => h.Id == databaseHostGame.HostGameId);
             if (hostGame is null)
             {
                 return false;
@@ -539,10 +498,10 @@ public class HostClient(
 
     private static async Task<Op> InstallAsync(
         Games.GamesClient gamesClient,
-        GameIdentifier gameIdentifier,
+        string gameId,
         CancellationToken cancellationToken)
     {
-        var result = await gamesClient.InstallAsync(new() { GameIdentifier = gameIdentifier }, cancellationToken: cancellationToken);
+        var result = await gamesClient.InstallAsync(new() { GameId = gameId }, cancellationToken: cancellationToken);
         return result.Op;
     }
 
@@ -551,10 +510,10 @@ public class HostClient(
 
     private static async Task<Op> UninstallAsync(
         Games.GamesClient gamesClient,
-        GameIdentifier gameIdentifier,
+        string gameId,
         CancellationToken cancellationToken)
     {
-        var result = await gamesClient.UninstallAsync(new() { GameIdentifier = gameIdentifier }, cancellationToken: cancellationToken);
+        var result = await gamesClient.UninstallAsync(new() { GameId = gameId }, cancellationToken: cancellationToken);
         return result.Op;
     }
 
@@ -563,10 +522,10 @@ public class HostClient(
 
     private static async Task<Op> RepairAsync(
         Games.GamesClient gamesClient,
-        GameIdentifier gameIdentifier,
+        string gameId,
         CancellationToken cancellationToken)
     {
-        var result = await gamesClient.RepairAsync(new() { GameIdentifier = gameIdentifier }, cancellationToken: cancellationToken);
+        var result = await gamesClient.RepairAsync(new() { GameId = gameId }, cancellationToken: cancellationToken);
         return result.Op;
     }
 
@@ -575,10 +534,10 @@ public class HostClient(
 
     private static async Task<Op> StartAsync(
         Games.GamesClient gamesClient, 
-        GameIdentifier gameIdentifier,
+        string gameId,
         CancellationToken cancellationToken)
     {
-        var result = await gamesClient.StartAsync(new() { GameIdentifier = gameIdentifier }, cancellationToken: cancellationToken);
+        var result = await gamesClient.StartAsync(new() { GameId = gameId }, cancellationToken: cancellationToken);
         return result.Op;
     }
 
@@ -587,10 +546,10 @@ public class HostClient(
 
     private static async Task<Op> StopAsync(
         Games.GamesClient gamesClient,
-        GameIdentifier gameIdentifier,
+        string gameId,
         CancellationToken cancellationToken)
     {
-        var result = await gamesClient.StopAsync(new() { GameIdentifier = gameIdentifier }, cancellationToken: cancellationToken);
+        var result = await gamesClient.StopAsync(new() { GameId = gameId }, cancellationToken: cancellationToken);
         return result.Op;
     }
 
@@ -599,7 +558,7 @@ public class HostClient(
         Guid libraryId,
         Guid libraryGameId,
         Guid hostId,
-        Func<Games.GamesClient, GameIdentifier, CancellationToken, Task<Op>> action,
+        Func<Games.GamesClient, string, CancellationToken, Task<Op>> action,
         CancellationToken cancellationToken)
     {
         await using var databaseContext = await databaseContextFactory.CreateDbContextAsync(cancellationToken);
@@ -641,7 +600,7 @@ public class HostClient(
         }
 
         // Hardcoding as guid but this will not always be true when other platforms are supported
-        var op = await action(gamesClient, new() { Id = Guid.Parse(hostGame.HostGameId).ToByteString() }, cancellationToken);
+        var op = await action(gamesClient, hostGame.HostGameId, cancellationToken);
         databaseContext.Operations.Add(new()
         {
             HostOpId = op.Id.ToGuid(),
@@ -657,7 +616,7 @@ public class HostClient(
 
     private static HostGame ConvertToHostGame(Satelight.Protos.Host.HostGame hostGame, LibraryGame libraryGame) => new()
     {
-        HostGameId = hostGame.Id.ToGuid().ToString(),
+        HostGameId = hostGame.Id,
         LibraryGame = libraryGame,
         Installed   = hostGame.Installed,
         Playing     = hostGame.Playing,
@@ -667,7 +626,6 @@ public class HostClient(
     private static bool IsGameOperation(OperationType operationType) => operationType switch
     {
         OperationType.StartGame => true,
-        OperationType.MonitorGame => true,
         OperationType.StopGame => true,
         OperationType.InstallGame => true,
         OperationType.UninstallGame => true,

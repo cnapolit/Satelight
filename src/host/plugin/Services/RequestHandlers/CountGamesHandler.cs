@@ -1,15 +1,14 @@
 ﻿using Comms.Common.Interface.Models;
-using Playnite.SDK;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Playnite;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-public class CountGamesHandler(IPlayniteAPI playniteApi) : RequestHandler<CountGamesRequest>
+public class CountGamesHandler(IPlayniteApi playniteApi) : RequestHandler<CountGamesRequest>
 {
     public override async ValueTask<SatelightResponse> HandleAsync(CountGamesRequest request, CancellationToken token)
     {
-        return new CountGamesResponse { Count = playniteApi.Database.GetFilteredGames(new() { Hidden = false }).Count() };
+        var linkedGameCount = playniteApi.Library.GameRelations.Sum(r => r.LinkedGames.Count);
+        var total = playniteApi.Library.Games.Count - linkedGameCount;
+        return new CountGamesResponse { Count = total };
     }
 }

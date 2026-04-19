@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Comms.Common.Interface.Models;
+﻿using Comms.Common.Interface.Models;
 
 namespace HostPlugin.Services;
 
 public class ActionTracker : IActionTracker
 {
-    private readonly object _pollLock = new();
+    private readonly Lock _pollLock = new();
 
     private readonly Dictionary<Guid, Op> _ops = [];
-    public Op AddOp(Guid localGameId, RequestType type, OpState state = OpState.Queued)
+    public Op AddOp(string localGameId, RequestType type, OpState state = OpState.Queued)
     {
         lock (_pollLock)
         {
@@ -25,7 +22,7 @@ public class ActionTracker : IActionTracker
         }
     }
 
-    public void UpdateOp(Guid gameId, RequestType type, OpState state)
+    public void UpdateOp(string gameId, RequestType type, OpState state)
     {
         lock (_pollLock)
         {

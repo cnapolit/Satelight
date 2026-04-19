@@ -1,14 +1,12 @@
 ﻿using Comms.Common.Interface.Models;
 using Comms.Host.Interface.Models;
-using Playnite.SDK;
-using System.Threading;
-using System.Threading.Tasks;
+using Playnite;
 
 namespace HostPlugin.Services.RequestHandlers;
 
-internal class GetBackgroundImageHandler(IPlayniteAPI playniteApi)
+internal class GetBackgroundImageHandler(IPlayniteApi playniteApi)
     : GetImageHandler<GetGameBackgroundRequest, GetGameBackgroundResponse>(playniteApi)
 {
     public override async ValueTask<SatelightResponse> HandleAsync(GetGameBackgroundRequest request, CancellationToken token)
-        => await GetImagesAsync(request, false, token);
+        => await GetImagesAsync(request, Plugin.Models.MediaFileType.DesktopBackground, token);
 }

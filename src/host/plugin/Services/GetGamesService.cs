@@ -1,112 +1,111 @@
 ﻿using Comms.Common.Interface.Models;
-using Comms.Host.Interface.Models;
-using Playnite.SDK;
-using Playnite.SDK.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Playnite;
 using Common.Utility.Extensions;
 using Game = Comms.Common.Interface.Models.Game;
+using System.Collections.Immutable;
+using Plugin.Common.Extensions;
+using Plugin.Models;
 
 namespace HostPlugin.Services;
 
-public class GetGamesService(IPlayniteAPI playniteApi) : IGetGamesService
+public class GetGamesService(IPlayniteApi playniteApi) : IGetGamesService
 {
+    private static readonly string[] ExcludedTags = ["[EMT]", "[PS]"];
 
-    private const           string   DuplicateHiderTagPrefix = "[DH]";
-    private static readonly string[] ExcludedTags            = [DuplicateHiderTagPrefix, "[EMT]", "[PS]"];
-
-    public Playnite.SDK.Models.Game GetGame(HostGameRequest game)
+    public Game? GetGame(GameRequest gameRequest)
     {
-        if (game.Id != Guid.Empty)
+        var game = playniteApi.Library.Games.Get(gameRequest.Id);
+        return game is null ? null : GetGame(game, playniteApi.Library.GameRelations.Get, GetExcludedTagIds());
+    }
+
+    public IEnumerable<Game> GetGames()
+    {
+        var excludedTags = GetExcludedTagIds();
+        var gameRelations = playniteApi.Library.GameRelations.ToList();
+        var linkedGamesToExclude = gameRelations.SelectMany(r => r.LinkedGames).ToImmutableHashSet();
+
+        return from game in playniteApi.Library.Games
+               where linkedGamesToExclude.Contains(game.Id)
+               select GetGame(game, i => gameRelations.FirstOrDefault(r => r.PrimaryGame == i), excludedTags);
+    }
+
+    private Game GetGame(
+        Playnite.Game game, Func<string, GameRelation?> gameRelationFunc, IList<string> excludedTags)
+    {
+        var relation = gameRelationFunc(game.Id);
+        var linkedGames = relation?.LinkedGames ?? [];
+        List<Playnite.Game> games = [game];
+        games.AddRange(linkedGames.Select(l => playniteApi.Library.Games.Get(l)!));
+        return PlayniteToServerGame(games, excludedTags);
+    }
+
+    private List<string> GetExcludedTagIds() 
+        => playniteApi.Library.Tags
+            .Where(t => ExcludedTags.Any(t.Name.StartsWith))
+            .Select(t => t.Id)
+            .ToList();
+
+    private GameInstance PlayniteToServerGameInstance(Playnite.Game copy)
+    {
+        var description = playniteApi.Library.GameDescriptions.Get(copy.Id);
+        return new()
         {
-            return playniteApi.Database.Games.Get(game.Id);
-        }
-
-        return playniteApi.Database.Games
-            .First(g => g.PluginId == game.PluginId && g.GameId == game.PluginGameId);
+            Id = copy.Id,
+            Name = copy.Name,
+            Description = description?.Text,
+            ReleaseDate = copy.ReleaseDate?.Date.Ticks,
+            Developers = copy.DeveloperIds.AsArray(),
+            Publishers = copy.PublisherIds.AsArray(),
+            Features = copy.FeatureIds.AsArray(),
+            Platforms = copy.PlatformIds.AsArray(),
+            LibraryId = copy.LibraryId,
+            Installed = copy.InstallState is InstallState.Installed,
+            Size = (long?)copy.InstallSize,
+            Source = copy.SourceId,
+            LibraryGameId = copy.LibraryGameId,
+            PlayActions = copy.GameActionIds ?? [],
+            Favorite = copy.Favorite
+        };
     }
 
-    public Game GetGame(GameRequest game)
-        => PlayniteToServerGame(playniteApi.Database.Games.Get(game.Id));
-
-    public IEnumerable<Game> GetGames() => GetFilteredGames(new() { Hidden = false });
-
-    public IEnumerable<Game> GetGames(Guid[] pluginIds)
-        => GetGames(playniteApi.Database.Games.Where(g => !g.Hidden && pluginIds.Contains(g.PluginId)));
-
-    public IEnumerable<Game> GetGamesFromSource(Guid sourceId)
-        => GetFilteredGames(new() { Hidden = false, Source = new() { Ids = [sourceId] } });
-
-    public IEnumerable<Game> GetGamesFromLibrary(Guid libraryId)
-        => GetFilteredGames(new() { Hidden = false, Library = new() { Ids = [libraryId] } });
-
-    public IEnumerable<Game> GetFilteredGames(FilterPresetSettings filterSettings)
-        => GetGames(playniteApi.Database.GetFilteredGames(filterSettings));
-
-    private IEnumerable<Game> GetGames(IEnumerable<Playnite.SDK.Models.Game> games)
-        => games.Select(PlayniteToServerGame);
-
-    private IEnumerable<GameInstance> GetGameInstances(Playnite.SDK.Models.Game game)
+    private Game PlayniteToServerGame(IList<Playnite.Game> games, IList<string> excludedTagIds)
     {
-        var duplicateTag = game.Tags.FirstOrDefault(t => t.Name.StartsWith(DuplicateHiderTagPrefix));
-        return duplicateTag is null
-            ? [PlayniteToServerGameInstance(game)]
-            : playniteApi
-             .Database
-             .GetFilteredGames(new() { Tag = new() { Ids = [duplicateTag.Id] } })
-             .Select(PlayniteToServerGameInstance);
+        var primaryGame = games[0];
+        var description = playniteApi.Library.GameDescriptions.Get(primaryGame.Id);
+        var notes = playniteApi.Library.GameNotes.Get(primaryGame.Id);
+        var userScore = games.Max(g => g.UserScore);
+        var series = games
+            .SelectMany(g => g.SeriesIds ?? [])
+            .Distinct()
+            .Select(s => playniteApi.Library.Series.Get(s)!.Name)
+            .ToList();
+
+        return new()
+        {
+            Id = primaryGame.Id,
+            Name = primaryGame.Name,
+            SortingName = primaryGame.SortingName,
+            Favorite = primaryGame.Favorite || games.Any(g => g.Favorite),
+            UserScore = games.Max(g => g.UserScore),
+            CriticScore = games.Max(g => g.CriticScore),
+            CommunityScore = games.Max(g => g.CommunityScore),
+            Series = series,
+            Instances = games.Select(PlayniteToServerGameInstance).ToList(),
+
+            Cover = primaryGame.MediaFiles
+                  ?.FirstOrDefault(f => f.GetMediaFileType() == MediaFileType.DesktopCover)?.Path,
+            Background = primaryGame.MediaFiles
+                  ?.FirstOrDefault(f => f.GetMediaFileType() == MediaFileType.DesktopBackground)?.Path,
+            LastPlayed = primaryGame.LastPlayedDate?.Ticks,
+            TimePlayed = primaryGame.PlayTime,
+            Description = description?.Text,
+            Notes = notes?.Text,
+            Genres = primaryGame.GenreIds.AsArray(),
+            Features = primaryGame.FeatureIds.AsArray(),
+            Categories = primaryGame.CategoryIds.AsArray(),
+            CompletionStatus = primaryGame.CompletionStatusId,
+            Publishers = primaryGame.PublisherIds?.ToList() ?? [],
+            Tags = primaryGame.TagIds?.Where(t => !excludedTagIds.Contains(t)).ToList() ?? [],
+        };
     }
-
-    private static GameInstance PlayniteToServerGameInstance(Playnite.SDK.Models.Game copy) => new()
-    {
-        Id           = copy.Id,
-        Name         = copy.Name,
-        Description  = copy.Description,
-        ReleaseDate  = copy.ReleaseDate?.Date.Ticks,
-        Developers   = copy.DeveloperIds.AsArray(),
-        Publishers   = copy.PublisherIds.AsArray(),
-        Features     = copy.  FeatureIds.AsArray(),
-        Platforms    = copy. PlatformIds.AsArray(),
-        LibraryId    = copy.PluginId,
-        Installed    = copy.IsInstalled,
-        Size         = (long?)copy.InstallSize,
-        Source       = copy.Source?.Id ?? Guid.Empty,
-        Playing      = copy.IsRunning,
-        PluginId     = copy.PluginId,
-        PluginGameId = copy.GameId,
-        PlayActions  = copy.GameActions?.Select(a => a.Name).ToArray() ?? [],
-        Favorite     = copy.Favorite
-    };
-
-    private Game PlayniteToServerGame(Playnite.SDK.Models.Game game) => new()
-    {
-        Id               = game.Id,
-        Name             = game.Name,
-        Description      = game.Description,
-        Notes            = game.Notes,
-        LastPlayed       = game.LastActivity?.Ticks,
-        TimePlayed       = (long)game.Playtime,
-        Favorite         = game.Favorite,
-        Cover            = game.CoverImage,
-        Background       = game.BackgroundImage,
-        CompletionStatus = game.CompletionStatus.Id,
-        Publisher        = game.Publishers?.FirstOrDefault()?.Name ?? string.Empty,
-        UserScore        = game.     UserScore.AsValue(),
-        CriticScore      = game.   CriticScore.AsValue(),
-        CommunityScore   = game.CommunityScore.AsValue(),
-        Genres           = game.   GenreIds.AsArray(),
-        Features         = game. FeatureIds.AsArray(),
-        Categories       = game.CategoryIds.AsArray(),
-        SortingName      = game.SortingName,
-        PlayCount        = (long)game.PlayCount,
-        Series           = game.Series?.Select(s => s.Name).ToArray() ?? [],
-        Tags             = [..FilterOutPluginTags(game)],
-        Instances        = [..GetGameInstances(game)]
-    };
-
-    private static IEnumerable<Guid> FilterOutPluginTags(Playnite.SDK.Models.Game game)
-        => from   tag in game.Tags
-           where  !ExcludedTags.Any(tag.Name.StartsWith)
-           select tag.Id;
 }

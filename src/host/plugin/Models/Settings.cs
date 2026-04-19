@@ -1,6 +1,8 @@
-﻿namespace HostPlugin.Models;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-public class Settings
+namespace HostPlugin.Models;
+
+public class Settings : ObservableObject
 {
     public int Port { get; set; } = 5156;
 }

@@ -4,7 +4,6 @@ using Service.Common;
 using System.IO.Pipes;
 using Google.Protobuf;
 using Piped;
-using System.Buffers;
 using Service.Common.Extensions;
 
 namespace Service.Services;

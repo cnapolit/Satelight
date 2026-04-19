@@ -1,6 +1,4 @@
-﻿using Playnite.SDK;
-using System;
-using System.Threading;
+﻿using Playnite;
 using Comms.Host.Interface.Models;
 
 namespace HostPlugin.Services.RequestHandlers;
@@ -8,6 +6,6 @@ namespace HostPlugin.Services.RequestHandlers;
 public class UpdateGameRequestHandler
 {
     public UpdateGameResponse Handle(
-        IPlayniteAPI playniteApi, UpdateGameRequest request, CancellationToken token)
+        IPlayniteApi playniteApi, UpdateGameRequest request, CancellationToken token)
         => throw new NotImplementedException();
 }

@@ -1,8 +1,6 @@
-﻿using Comms.Common.Interface;
-using Comms.Common.Interface.Models;
+﻿using Comms.Common.Interface.Models;
+using Comms.Host.Interface;
 using Comms.Host.Interface.Models;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HostPlugin.Services.RequestHandlers;
 
@@ -32,7 +30,7 @@ public class RequestHandlerDirectory(
     IRequestHandler<UpdateCoverRequest> updateCoverRequestHandler,
     IRequestHandler<UpdateBackgroundRequest> updateBackgroundRequestHandler) : IRequestHandlerDirectory
 {
-    public async Task HandleAsync(ISatelightConnection connection, CancellationToken token)
+    public async Task HandleAsync(IHostConnection connection, CancellationToken token)
     {
         var request = await connection.ReadRequestAsync(token);
         if (request is StopGameRequest stopGameRequest)

@@ -31,6 +31,12 @@ builder.WebHost.ConfigureKestrel(o =>
     o.ListenAnyIP(reply.Port, lo => lo.UseHttps());
 });
 builder.Services.Configure<MediaPathOptions>(o => o.PlayniteRootPath = builder.Environment.WebRootPath);
+builder.Services.Configure<HostAdvertisementOptions>(o =>
+{
+    o.Port = reply.Port;
+    o.Metadata["hostname"] = Environment.MachineName;
+});
+builder.Services.AddHostedService<HostAdvertisementService>();
 
 var app = builder.Build();
 app.MapControllers();

@@ -45,11 +45,13 @@ builder.Services.AddCors(options =>
 });
 builder.Services
        .AddSingleton<IDatabaseClient, SatelightDatabaseClient>()
-       .AddSingleton<HostOperationPollingService>()
        .AddSingleton<ChannelManager>()
        .AddSingleton<MediaFileService>()
        .AddSingleton<HostClient>()
        .AddSingleton<HostNetworkService>()
+       .AddSingleton<HostDiscoveryService>()
+       .AddSingleton<HostOperationPollingService>()
+       .AddHostedService(sp => sp.GetRequiredService<HostDiscoveryService>())
        .AddHostedService(sp => sp.GetRequiredService<HostOperationPollingService>())
        .AddScoped<BrowseState>()
        .AddBlazorise( o =>

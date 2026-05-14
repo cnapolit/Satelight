@@ -23,6 +23,7 @@ public class GamesService(ILogger<GamesService> logger) : Games.GamesBase
         do
         {
             var read = await client.ReadAsync(lengthBuffer, context.CancellationToken);
+            if (read is 0) break;
             if (read != 4) throw new EndOfStreamException();
             var messageLength = BitConverter.ToInt32(lengthBuffer.ToArray(), 0);
 

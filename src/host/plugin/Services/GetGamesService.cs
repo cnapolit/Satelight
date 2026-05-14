@@ -49,7 +49,7 @@ public class GetGamesService(IPlayniteAPI playniteApi) : IGetGamesService
 
     private IEnumerable<GameInstance> GetGameInstances(Playnite.SDK.Models.Game game)
     {
-        var duplicateTag = game.Tags.FirstOrDefault(t => t.Name.StartsWith(DuplicateHiderTagPrefix));
+        var duplicateTag = game.Tags?.FirstOrDefault(t => t.Name.StartsWith(DuplicateHiderTagPrefix));
         return duplicateTag is null
             ? [PlayniteToServerGameInstance(game)]
             : playniteApi
@@ -106,7 +106,7 @@ public class GetGamesService(IPlayniteAPI playniteApi) : IGetGamesService
     };
 
     private static IEnumerable<Guid> FilterOutPluginTags(Playnite.SDK.Models.Game game)
-        => from   tag in game.Tags
+        => from   tag in (game.Tags ?? [])
            where  !ExcludedTags.Any(tag.Name.StartsWith)
            select tag.Id;
 }
